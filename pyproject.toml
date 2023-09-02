@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "ph8-py"
+version = "0.1.0"
+description = ""
+authors = ["Alex Howard <thezanke@gmail.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+"discord.py" = "^2.3.2"
+openai = "^0.28.0"
+python-dotenv = "^1.0.0"
+certifi = "^2023.7.22"
+watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
