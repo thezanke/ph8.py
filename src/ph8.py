@@ -1,15 +1,17 @@
+from typing import cast
 import certifi
 import os
 import discord
 import config
 import openai_client as openai
 
-os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ["SSL_CERT_FILE"] = certifi.where()
 
-client = discord.Client(
+client: discord.Client = discord.Client(
     intents=discord.Intents.all(),
     guild_subscriptions=True,
 )
+
 
 @client.event
 async def on_ready():
@@ -17,16 +19,81 @@ async def on_ready():
 
 
 @client.event
-async def on_message(message):
+async def on_message(message: discord.Message):
     if message.author == client.user:
+        return
+
+    is_dm = isinstance(message.channel, discord.DMChannel)
+    is_mentioned = client.user in message.mentions
+    is_reply = await determine_if_reply(message)
+    should_respond = is_dm or is_mentioned or is_reply
+
+    if not should_respond:
         return
 
     if config.debug_mode:
         print(f"Received message: {message.content}")
 
-    openai_response = await openai.get_response(message.content)
 
-    await message.channel.send(openai_response)
+    messages = [message]
 
+    if is_reply:
+        messages.extend(await get_reply_chain(message))
+
+    messages.reverse()
+
+    if config.debug_mode:
+        print(f"Message chain: {messages}")
+
+    completion_messages = list(map(map_discord_message_to_openai_input, messages))
+    result = await openai.get_response(completion_messages)
+    response = cast(dict, result)["choices"][0]["message"]
+
+    if response is None:
+        return
+    
+    if config.debug_mode:
+        print(f"OpenAI Response: {response.content}")
+    
+    await message.reply(response.content)
+
+async def get_reply_chain(message: discord.Message):
+    replies = []
+    current_message = message
+
+    while current_message.reference is not None and current_message.reference.message_id is not None:
+        current_message = await current_message.channel.fetch_message(current_message.reference.message_id)
+        replies.append(current_message)
+
+    return replies
+
+def map_discord_message_to_openai_input(message: discord.Message):
+    completion_message = {
+        "content": message.content,
+    }
+
+    if message.author == client.user:
+        completion_message["role"] = "assistant"
+    else:
+        completion_message["role"] = "user"
+        completion_message["name"] = str(message.author.id)
+
+    return completion_message
+
+async def determine_if_reply(message: discord.Message):
+    if message.reference is None:
+        return False
+
+    original_message_id = message.reference.message_id
+
+    if original_message_id is None:
+        return False
+
+    original_message = await message.channel.fetch_message(original_message_id)
+
+    if original_message is None:
+        return False
+    
+    return original_message.author == client.user
 
 client.run(config.discord["token"])

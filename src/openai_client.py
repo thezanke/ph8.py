@@ -3,9 +3,8 @@ import config
 
 openai.api_key = config.openai["api_key"]
 
-
-async def get_response(prompt):
-    # pseudo-code; real implementation will vary
+async def get_response(messages):
     return await openai.ChatCompletion.acreate(
-        messages=[{'role': 'user', 'content': prompt}], model="gpt-4"
+        messages=messages,
+        model="gpt-4",
     )
