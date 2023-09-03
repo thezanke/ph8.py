@@ -14,6 +14,8 @@ python-dotenv = "^1.0.0"
 certifi = "^2023.7.22"
 watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
 
+[tool.poetry.scripts]
+watch = "scripts.start:watch"
 
 [build-system]
 requires = ["poetry-core"]
