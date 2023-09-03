@@ -26,6 +26,7 @@ async def on_message(message: discord.Message):
     is_dm = isinstance(message.channel, discord.DMChannel)
     is_mentioned = client.user in message.mentions
     is_reply = await determine_if_reply(message)
+    is_thread = isinstance(message.channel, discord.Thread)
     should_respond = is_dm or is_mentioned or is_reply
 
     if not should_respond:
@@ -33,45 +34,79 @@ async def on_message(message: discord.Message):
 
     if config.debug_mode:
         print(f"Received message:\n  {message.author.name}: {message.content}")
+    should_create_thread = not (is_dm or is_thread)
 
-    messages = [message]
-
-    if is_reply:
-        messages.extend(await get_reply_chain(message))
-
-    messages.reverse()
+    messages: list[discord.Message]
+    if is_thread:
+        messages = await get_thread_messages(message)
+    else:
+        messages = await get_message_chain(message)
 
     completion_messages = list(
         map(map_discord_message_to_openai_input, messages))
 
-    if config.debug_mode:
-        message_chain = "\n".join(
-            ["  " + str(message) for message in completion_messages]
-        )
-        print(f"Message chain:\n{message_chain}")
+    thread = None
+    if should_create_thread:
+        thread_name = await generate_thread_name(messages)
+        if config.debug_mode:
+            print(f"Creating thread with name: {thread_name}")
+        thread = await message.create_thread(name=thread_name)
 
-    result = await openai.get_response(completion_messages)
-    response = cast(dict, result)["choices"][0]["message"]
+    response_message = await openai.get_response(completion_messages, is_thread)
 
-    if response is None:
+    if response_message is None:
         return
 
-    if config.debug_mode:
-        print(f"OpenAI Response:\n  {response.content}")
+    if thread is not None:
+        return await thread.send(response_message.content)
 
-    await message.reply(response.content)
+    return await message.reply(response_message.content)
 
 
-async def get_reply_chain(message: discord.Message):
+async def get_thread_messages(message: discord.Message):
     channel = message.channel
-    replies = []
+    messages = []
+    async for message in channel.history(limit=100):
+        messages.append(message)
+        
+    messages.reverse()
+    
+    return messages
+
+
+async def generate_thread_name(messages: list[discord.Message]):
+    convo = "\n".join(
+        [f"{message.author.name}: {message.content}" for message in messages])
+
+    try:
+        result = await openai.get_response(
+            [
+                {
+                    "content": f"Determine a Discord thread name to continue the following conversation:\n\n{convo}",
+                    "role": "assistant",
+                },
+            ]
+        )
+
+        return result.content
+    except Exception as e:
+        print(e)
+        return "untitled thread"
+
+
+async def get_message_chain(message: discord.Message):
+    channel = message.channel
+    messages = [message]
+    
     current_message = message
 
     while reference_id := get_reference_id(current_message):
         current_message = await channel.fetch_message(reference_id)
-        replies.append(current_message)
+        messages.append(current_message)
 
-    return replies
+    messages.reverse()
+
+    return messages
 
 
 def get_reference_id(message: discord.Message):
