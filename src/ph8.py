@@ -41,7 +41,8 @@ async def on_message(message: discord.Message):
 
     messages.reverse()
 
-    completion_messages = list(map(map_discord_message_to_openai_input, messages))
+    completion_messages = list(
+        map(map_discord_message_to_openai_input, messages))
 
     if config.debug_mode:
         message_chain = "\n".join(
@@ -106,6 +107,5 @@ async def determine_if_reply(message: discord.Message):
         return False
 
     return original_message.author == client.user
-
 
 client.run(config.discord["token"])
