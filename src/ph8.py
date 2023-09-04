@@ -23,6 +23,10 @@ async def on_message(message: discord.Message):
     if message.author == client.user:
         return
 
+    return await handle_message(message)
+
+
+async def handle_message(message: discord.Message):
     is_dm = isinstance(message.channel, discord.DMChannel)
     is_mentioned = client.user in message.mentions
     is_reply = await determine_if_reply(message)
@@ -37,6 +41,7 @@ async def on_message(message: discord.Message):
     should_create_thread = not (is_dm or is_thread)
 
     messages: list[discord.Message]
+
     if is_thread:
         messages = await get_thread_messages(message)
     else:
@@ -52,7 +57,7 @@ async def on_message(message: discord.Message):
             print(f"Creating thread with name: {thread_name}")
         thread = await message.create_thread(name=thread_name)
 
-    response_message = await openai.get_response(completion_messages, is_thread)
+    response_message = await openai.get_response(completion_messages, should_create_thread)
 
     if response_message is None:
         return
@@ -64,13 +69,24 @@ async def on_message(message: discord.Message):
 
 
 async def get_thread_messages(message: discord.Message):
-    channel = message.channel
     messages = []
-    async for message in channel.history(limit=100):
-        messages.append(message)
-        
+
+    async for message in message.channel.history(limit=100):
+        is_thread_starter = message.type == discord.MessageType.thread_starter_message
+
+        if is_thread_starter:
+            assert message.reference is not None
+
+            ref_channel = await message.guild.fetch_channel(message.reference.channel_id)
+            ref_message = await ref_channel.fetch_message(message.reference.message_id)
+            message_chain = await get_message_chain(ref_message, False)
+
+            messages.extend(message_chain)
+        else:
+            messages.append(message)
+
     messages.reverse()
-    
+
     return messages
 
 
@@ -94,17 +110,17 @@ async def generate_thread_name(messages: list[discord.Message]):
         return "untitled thread"
 
 
-async def get_message_chain(message: discord.Message):
-    channel = message.channel
+async def get_message_chain(message: discord.Message, should_reverse=True):
     messages = [message]
-    
+
     current_message = message
 
     while reference_id := get_reference_id(current_message):
-        current_message = await channel.fetch_message(reference_id)
+        current_message = await current_message.channel.fetch_message(reference_id)
         messages.append(current_message)
 
-    messages.reverse()
+    if should_reverse:
+        messages.reverse()
 
     return messages
 

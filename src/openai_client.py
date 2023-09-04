@@ -27,6 +27,6 @@ async def get_response(messages, is_thread=False):
     response_message = cast(dict, response)["choices"][0]["message"]
 
     if config.debug_mode:
-        print(f"OpenAI Response:\n  {response_message.content}")
+        print(f"OpenAI Response:\n  {response_message}")
 
     return response_message
