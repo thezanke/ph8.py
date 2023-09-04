@@ -48,24 +48,33 @@ async def handle_message(message: discord.Message):
         messages = await get_message_chain(message)
 
     completion_messages = list(
-        map(map_discord_message_to_openai_input, messages))
+        map(create_openai_input_message, messages))
 
     thread = None
     if should_create_thread:
         thread_name = await generate_thread_name(messages)
+
         if config.debug_mode:
             print(f"Creating thread with name: {thread_name}")
-        thread = await message.create_thread(name=thread_name)
 
-    response_message = await openai.get_response(completion_messages, should_create_thread)
-
-    if response_message is None:
-        return
+        thread = await message.create_thread(
+            name=thread_name,
+            reason="ai discussion thread",
+            auto_archive_duration=60
+        )
 
     if thread is not None:
-        return await thread.send(response_message.content)
+        await thread.typing()
+    else:
+        await message.channel.typing()
 
-    return await message.reply(response_message.content)
+    response = await openai.get_response(completion_messages, should_create_thread)
+    response_message = response.content or "hmmmm"
+
+    if thread is not None:
+        await thread.send(response_message)
+    else:
+        await message.reply(response_message)
 
 
 async def get_thread_messages(message: discord.Message):
@@ -91,24 +100,21 @@ async def get_thread_messages(message: discord.Message):
 
 
 async def generate_thread_name(messages: list[discord.Message]):
-    convo = "\n".join(
-        [f"{message.author.name}: {message.content}" for message in messages])
+    completion_messages = [
+        create_openai_input_message(message) for message in messages
+    ]
+
+    completion_messages.append({
+        "content": "Please reply with a thread name under 100 characters to continue this conversation",
+        "role": "system",
+    })
 
     try:
-        result = await openai.get_response(
-            [
-                {
-                    "content": f"Determine a Discord thread name to continue the following conversation:\n\n{convo}",
-                    "role": "assistant",
-                },
-            ]
-        )
-
+        result = await openai.get_response(completion_messages)
         return result.content
     except Exception as e:
         print(e)
         return "untitled thread"
-
 
 async def get_message_chain(message: discord.Message, should_reverse=True):
     messages = [message]
@@ -129,7 +135,7 @@ def get_reference_id(message: discord.Message):
     return message.reference and message.reference.message_id
 
 
-def map_discord_message_to_openai_input(message: discord.Message):
+def create_openai_input_message(message: discord.Message):
     completion_message = {
         "content": message.content,
     }

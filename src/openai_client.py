@@ -20,7 +20,7 @@ async def get_response(messages: list[dict[str, str]], is_thread=False):
 
     response = await openai.ChatCompletion.acreate(
         messages=messages_to_send,
-        model="gpt-4",
+        model="gpt-3.5-turbo-16k-0613",
     )
 
     response_message = cast(dict, response)["choices"][0]["message"]
