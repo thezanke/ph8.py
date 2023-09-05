@@ -1,4 +1,3 @@
-from typing import cast
 import certifi
 import os
 import discord
@@ -53,8 +52,6 @@ async def handle_message(message: discord.Message):
     else:
         messages = await get_message_chain(message)
 
-    completion_messages = list(map(create_openai_input_message, messages))
-
     thread = None
     if should_create_thread:
         thread_name = await generate_thread_name(messages)
@@ -63,9 +60,7 @@ async def handle_message(message: discord.Message):
             print(f"Creating thread with name: {thread_name}")
 
         thread = await message.create_thread(
-            name=thread_name,
-            reason="ph8 discussion thread",
-            auto_archive_duration=60,
+            name=thread_name, reason="ph8 discussion thread", auto_archive_duration=60
         )
 
     if thread is not None:
@@ -73,7 +68,18 @@ async def handle_message(message: discord.Message):
     else:
         await message.channel.typing()
 
-    response = await openai.get_response(completion_messages, should_create_thread)
+    completion_messages = [
+        {
+            "content": create_system_message(message, messages, thread),
+            "role": "system",
+        },
+    ]
+
+    completion_messages.extend(
+        create_openai_input_message(message) for message in messages
+    )
+
+    response = await openai.get_response(completion_messages)
     response_message = response.content or "hmmmm"
 
     if thread is not None:
@@ -94,6 +100,44 @@ def determine_if_mentioned(message: discord.Message):
         return bool(set(message.guild.me.roles) & set(message.role_mentions))
 
     return False
+
+
+def create_system_message(
+    message: discord.Message,
+    messages: list[discord.Message],
+    thread: discord.Thread | None = None,
+):
+    name = client.user.name if client.user else "ph8"
+    id = client.user.id if client.user else ""
+
+    details = [f"You are a multi-user chat assistant named {name} (ID: {id})."]
+
+    if message.guild:
+        details.append(f"Server Name: {message.guild.name}.")
+
+    if isinstance(message.channel, discord.TextChannel):
+        details.append(f"Channel Name: {message.channel.name}.")
+
+    if isinstance(message.channel, discord.TextChannel):
+        details.append(f"Channel Name: {message.channel.name}.")
+
+    if not thread and isinstance(message.channel, discord.Thread):
+        thread = message.channel
+
+    if thread:
+        if thread.parent:
+            details.append(f'Channel Name: "{thread.parent.name}".')
+        details.append(f'Thread Title: "{thread.name}".')
+
+    if isinstance(message.channel, discord.DMChannel) and message.channel.recipient:
+        details.append(f"DMing With: {message.channel.recipient.name} (ID: {message.channel.recipient.id}).")
+
+    participants = set([m.author for m in messages])
+    participants_text = ", ".join([f"{p.name} (ID: {p.id})" for p in participants])
+
+    details.append(f" Participants: {participants_text}.")
+
+    return "\n".join(details)
 
 
 async def get_thread_messages(message: discord.Message):
@@ -125,7 +169,9 @@ async def generate_thread_name(messages: list[discord.Message]):
 
     completion_messages.append(
         {
-            "content": "Please reply with a thread name under 100 characters to continue this conversation",
+            "content": """Return a title for a thread containing the previous messages.
+MUST: be clever or funny, under 100 characters, in titlecase.
+MUST NOT: be wrapped with quotes, end in punctuation, or contain user mentions.""",
             "role": "system",
         }
     )
