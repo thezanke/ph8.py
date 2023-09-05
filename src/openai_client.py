@@ -41,7 +41,7 @@ async def get_moderation_approval(message_content: str):
     if config.debug_mode:
         print(f"OpenAI moderation response: {response}")
 
-    flagged: bool = response["results"][0]["flagged"] or False  # type: ignore
+    flagged: bool = cast(dict, response)["results"][0]["flagged"] or False
 
     if config.debug_mode:
         print(f"OpenAI moderation flagged: {flagged}")
