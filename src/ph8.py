@@ -82,7 +82,7 @@ async def handle_message(message: discord.Message):
         await message.reply(response_message)
 
 
-async def determine_if_mentioned(message: discord.Message):
+def determine_if_mentioned(message: discord.Message):
     if client.user in message.mentions:
         return True
 
