@@ -9,18 +9,19 @@ def validate_env():
         value = os.getenv(var)
         if value is None:
             raise EnvironmentError(
-                f"Environment variable {var} is missing or set to None.")
+                f"Environment variable {var} is missing or set to None."
+            )
 
 
 load_dotenv()
 validate_env()
 
 openai = {
-    "api_key": str(os.getenv("OPENAI_API_SECRET"))
+    "api_key": str(os.getenv("OPENAI_API_SECRET")),
 }
 
 discord = {
-    "token": str(os.getenv("DISCORD_BOT_TOKEN"))
+    "token": str(os.getenv("DISCORD_BOT_TOKEN")),
 }
 
 debug_mode = bool(os.getenv("DEBUG"))
