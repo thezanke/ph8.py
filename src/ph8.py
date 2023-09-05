@@ -28,7 +28,7 @@ async def on_message(message: discord.Message):
 
 async def handle_message(message: discord.Message):
     is_dm = isinstance(message.channel, discord.DMChannel)
-    is_mentioned = client.user in message.mentions
+    is_mentioned = determine_if_mentioned(message)
     is_reply = await determine_if_reply(message)
     is_thread = isinstance(message.channel, discord.Thread)
     should_respond = is_dm or is_mentioned or is_reply
@@ -80,6 +80,20 @@ async def handle_message(message: discord.Message):
         await thread.send(response_message)
     else:
         await message.reply(response_message)
+
+
+async def determine_if_mentioned(message: discord.Message):
+    if client.user in message.mentions:
+        return True
+
+    if (
+        message.guild
+        and len(message.guild.me.roles) > 0
+        and len(message.role_mentions) > 0
+    ):
+        return bool(set(message.guild.me.roles) & set(message.role_mentions))
+
+    return False
 
 
 async def get_thread_messages(message: discord.Message):
