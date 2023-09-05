@@ -158,7 +158,15 @@ async def determine_if_reply(message: discord.Message):
     if original_message_id is None:
         return False
 
-    original_message = await message.channel.fetch_message(original_message_id)
+    channel = None
+    if message.reference.channel_id == message.channel.id:
+        channel = message.channel
+    else:
+        channel = await client.fetch_channel(message.reference.channel_id)
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            return False
+    
+    original_message = await channel.fetch_message(original_message_id)
 
     if original_message is None:
         return False
