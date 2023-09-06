@@ -224,17 +224,45 @@ def get_reference_id(message: discord.Message):
 
 
 def create_openai_input_message(message: discord.Message):
-    completion_message = {
+    if message.author == client.user:
+        return {
+            "role": "assistant",
+            "content": message.content,
+        }
+    else:
+        return {
+            "role": "user",
+            "content": str(get_discord_message_details(message)),
+        }
+
+
+def get_discord_message_details(message: discord.Message):
+    return {
+        "id": message.id,
         "content": message.content,
+        "author": get_user_details(message.author),
+        "attachments": [get_attachment_details(a) for a in message.attachments],
+        "embeds": [get_embed_details(e) for e in message.embeds]
     }
 
-    if message.author == client.user:
-        completion_message["role"] = "assistant"
-    else:
-        completion_message["role"] = "user"
-        completion_message["name"] = str(message.author.id)
 
-    return completion_message
+def get_embed_details(embed: discord.Embed):
+    return {
+        "title": embed.title,
+        "description": embed.description,
+        "url": embed.url,
+        "type": embed.type,
+    }
+
+
+def get_attachment_details(attachment: discord.Attachment):
+    return {
+        "url": attachment.url,
+        "filename": attachment.filename,
+        "size": attachment.size,
+        "content_type": attachment.content_type,
+        "description": attachment.description,
+    }
 
 
 async def determine_if_reply(message: discord.Message):
