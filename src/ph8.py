@@ -4,6 +4,7 @@ import discord
 import config
 import openai_client as openai
 
+
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
 client: discord.Client = discord.Client(
@@ -37,6 +38,11 @@ async def handle_message(message: discord.Message):
 
     if config.debug_mode:
         print(f"Received message:\n  {message.author.name}: {message.content}")
+
+    if message.author.bot:
+        if config.debug_mode:
+            print(f"Ignoring message from bot: {message.author.name}")
+        return
 
     moderation_approval = await openai.get_moderation_approval(message.content)
     if not moderation_approval:
@@ -107,10 +113,11 @@ def create_system_message(
     messages: list[discord.Message],
     thread: discord.Thread | None = None,
 ):
-    name = client.user.name if client.user else "ph8"
-    id = client.user.id if client.user else ""
-
-    details = [f"You are a multi-user chat assistant named {name} (ID: {id})."]
+    details = [
+        "You are a multi-user chat assistant.",
+        f"Your details: {get_user_details(client.user)}",
+        "You are able to be tagged by any users, by name or role, and can reply in DMs.",
+    ]
 
     if message.guild:
         details.append(f"Server Name: {message.guild.name}.")
@@ -130,12 +137,19 @@ def create_system_message(
         details.append(f'Thread Title: "{thread.name}".')
 
     if isinstance(message.channel, discord.DMChannel) and message.channel.recipient:
-        details.append(f"DMing With: {message.channel.recipient.name} (ID: {message.channel.recipient.id}).")
+        details.append(
+            f"DMing With: {message.channel.recipient.name} (ID: {message.channel.recipient.id})."
+        )
 
-    participants = set([m.author for m in messages])
-    participants_text = ", ".join([f"{p.name} (ID: {p.id})" for p in participants])
+    participants_details = {
+        message.author.id: get_user_details(message.author) for message in messages
+    }
 
-    details.append(f" Participants: {participants_text}.")
+    details.append(f" Participants: {participants_details}.")
+
+    details.append(
+        f'Use <@participant.id> to mention/tag participants, example: "<@1111222233334444555> I hope you\'ve had a good day!".'
+    )
 
     return "\n".join(details)
 
@@ -240,6 +254,15 @@ async def determine_if_reply(message: discord.Message):
         return False
 
     return original_message.author == client.user
+
+
+PARTICIPANT_KEYS = ("id", "name", "bot", "nick")
+
+
+def get_user_details(
+    participant: discord.User | discord.Member | discord.ClientUser | None,
+):
+    return {key: getattr(participant, key, "N/A") for key in PARTICIPANT_KEYS}
 
 
 client.run(config.discord["token"])
