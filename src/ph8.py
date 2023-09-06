@@ -115,7 +115,7 @@ def create_system_message(
 ):
     details = [
         "You are a multi-user chat assistant.",
-        f"Your details: {get_user_details(client.user)}",
+        f"Your details: {get_user_details(getattr(message.channel, 'me', client.user))}",
         "You are able to be tagged by any users, by name or role, and can reply in DMs.",
     ]
 
@@ -141,9 +141,13 @@ def create_system_message(
             f"DMing With: {message.channel.recipient.name} (ID: {message.channel.recipient.id})."
         )
 
-    participants_details = {
-        message.author.id: get_user_details(message.author) for message in messages
-    }
+    participants = getattr(
+        message.channel,
+        "members",
+        set([message.author for message in messages])
+    )
+
+    participants_details = {p.id: get_user_details(p) for p in participants}
 
     details.append(f" Participants: {participants_details}.")
 
@@ -179,7 +183,9 @@ async def get_thread_messages(message: discord.Message):
 
 
 async def generate_thread_name(messages: list[discord.Message]):
-    completion_messages = [create_openai_input_message(message) for message in messages]
+    completion_messages = [
+        create_openai_input_message(message) for message in messages
+    ]
 
     completion_messages.append(
         {
@@ -260,7 +266,7 @@ PARTICIPANT_KEYS = ("id", "name", "bot", "nick")
 
 
 def get_user_details(
-    participant: discord.User | discord.Member | discord.ClientUser | None,
+    participant: discord.User | discord.Member | discord.ThreadMember | discord.ClientUser | None,
 ):
     return {key: getattr(participant, key, "N/A") for key in PARTICIPANT_KEYS}
 
