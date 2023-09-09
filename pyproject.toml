@@ -13,6 +13,7 @@ openai = "^0.28.0"
 python-dotenv = "^1.0.0"
 certifi = "^2023.7.22"
 watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
+beautifulsoup4 = "^4.12.2"
 
 [tool.poetry.scripts]
 watch = "scripts.start:watch"
