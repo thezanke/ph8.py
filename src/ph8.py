@@ -1,15 +1,43 @@
+from textwrap import dedent
+from bs4 import BeautifulSoup
 import certifi
 import os
 import discord
+import requests
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 import config
-import openai_client as openai
-
+from openai_client import openai_client
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
 client: discord.Client = discord.Client(
     intents=discord.Intents.all(),
     guild_subscriptions=True,
+)
+
+
+@retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
+async def get_content_from_url(parameters: dict[str, str]):
+    url = parameters["url"]
+    response = requests.get(url, headers={"User-Agent": ""})
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    return soup.text
+
+openai_client.register_function(
+    name="get_content_from_url",
+    description="Get the text content from a URL",
+    parameters={
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "description": "The URL to get the content from",
+            },
+        },
+        "required": ["url"],
+    },
+    handler=get_content_from_url
 )
 
 
@@ -44,7 +72,7 @@ async def handle_message(message: discord.Message):
             print(f"Ignoring message from bot: {message.author.name}")
         return
 
-    moderation_approval = await openai.get_moderation_approval(message.content)
+    moderation_approval = await openai_client.get_moderation_approval(message.content)
     if not moderation_approval:
         mod_response = f"I'm sorry, <@{message.author.id}>, I'm afraid I can't do that.\nᵐᵒᵈᵉʳᵃᵗᶦᵒⁿ ᶠᵃᶦˡᵉᵈ"
         await message.reply(mod_response)
@@ -85,7 +113,7 @@ async def handle_message(message: discord.Message):
         create_openai_input_message(message) for message in messages
     )
 
-    response = await openai.get_response(completion_messages)
+    response = await openai_client.get_response(completion_messages)
     response_message = response.content or "hmmmm"
 
     if thread is not None:
@@ -115,8 +143,10 @@ def create_system_message(
 ):
     details = [
         "You are a multi-user chat assistant.",
-        f"Your details: {get_user_details(getattr(message.channel, 'me', client.user))}",
         "You are able to be tagged by any users, by name or role, and can reply in DMs.",
+        "Keep your response to under 2000 characters.",
+        f"Your details: {str(getattr(message.channel, 'me', client.user))}",
+        "Only call the functions you have been provided."
     ]
 
     if message.guild:
@@ -147,9 +177,9 @@ def create_system_message(
         set([message.author for message in messages])
     )
 
-    participants_details = {p.id: get_user_details(p) for p in participants}
+    participants_details = {p.id: str(p) for p in participants}
 
-    details.append(f" Participants: {participants_details}.")
+    details.append(f"Participants: {participants_details}.")
 
     details.append(
         f'Use <@participant.id> to mention/tag participants, example: "<@1111222233334444555> I hope you\'ve had a good day!".'
@@ -183,21 +213,27 @@ async def get_thread_messages(message: discord.Message):
 
 
 async def generate_thread_name(messages: list[discord.Message]):
-    completion_messages = [
-        create_openai_input_message(message) for message in messages
-    ]
+    thread_str = "\n".join([
+        f"\t{get_discord_message_details(message)}" for message in messages
+    ])
 
-    completion_messages.append(
+    completion_messages = [
         {
-            "content": """Return a title for a thread containing the previous messages.
-MUST: be clever or funny, under 100 characters, in titlecase.
-MUST NOT: be wrapped with quotes, end in punctuation, or contain user mentions.""",
+            "content": dedent(f"""
+                Return a funny title for this thread:
+                {thread_str}
+                
+                Requirements:
+                * Must be between 1 and 100 characters.
+                * Must be clever or funny.
+                * Must be titlecased. Must not be quoted.
+                * Must not contain any user IDs or mentions."""),
             "role": "system",
         }
-    )
+    ]
 
     try:
-        result = await openai.get_response(completion_messages)
+        result = await openai_client.get_response(completion_messages)
         return result.content
     except Exception as e:
         print(e)
