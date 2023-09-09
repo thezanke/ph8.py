@@ -1,6 +1,8 @@
+from textwrap import dedent
 from types import SimpleNamespace
 from typing import cast
 from bs4 import BeautifulSoup
+import json
 import requests
 import openai
 import config
@@ -26,10 +28,34 @@ functions = [
 ]
 
 
+async def get_summary(
+    input: str,
+    model="gpt-3.5-turbo-16k-0613",
+):
+    response = await openai.ChatCompletion.acreate(
+        messages=[
+            {
+                "content": """
+Summarize extracted web page text.
+If response is a paywall, http error, etc, return a helpful message for the user.""",
+                "role": "system",
+            },
+            {"content": input, "role": "user"},
+        ],
+        model=model,
+        temperature=0.5,
+    )
+
+    response_message = cast(dict, response)["choices"][0]["message"]
+
+    return response_message.content
+
+
 async def get_content_from_url(params: dict[str, str]):
     url = params["url"]
     respone = requests.get(url)
     soup = BeautifulSoup(respone.content, "html.parser")
+
     return soup.text
 
 
@@ -54,17 +80,30 @@ async def get_response(
         functions=functions,
     )
 
-    response_message = cast(dict, response)["choices"][0]["message"]
+    full_response = cast(dict, response)["choices"][0]
+    response_message = full_response["message"]
 
     if config.debug_mode:
-        print(f"OpenAI Response: {response_message}")
+        print(f"OpenAI Response: {full_response}")
 
-    if response_message["function_call"] is not None:
-        function_name = response_message["function_call"]["function"]
-        function_params = response_message["function_call"]["parameters"]
+    if full_response["finish_reason"] == "function_call":
+        if config.debug_mode:
+            print(f"OpenAI function call: {response_message['function_call']}")
+
+        function_name = response_message["function_call"]["name"]
+        function_params = json.loads(response_message["function_call"]["arguments"])
         function = func_register[function_name]
         function_response = await function(function_params)
-        fn_response_message = { "content": function_response, "" }
+        fn_response_message = {
+            "content": function_response,
+            "role": "function",
+            "name": function_name,
+        }
+        messages.append(fn_response_message)
+
+        return await get_response(
+            messages=messages, model=model, temperature=temperature
+        )
 
     return response_message
 
