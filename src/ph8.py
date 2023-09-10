@@ -40,6 +40,84 @@ openai_client.register_function(
     handler=get_content_from_url
 )
 
+async def send_reply(parameters: dict[str, str]):
+    channel_id = parameters["channel_id"]
+    channel = await client.fetch_channel(channel_id)
+    
+    message_id = parameters["message_id"]
+    message = await channel.fetch_message(message_id)
+    
+    reply = parameters["reply"]
+    
+    await message.reply(reply)
+
+
+openai_client.register_function(
+    name="send_reply",
+    description="""
+        Must be called to reply.
+        Can be called repeatedly to reply to the same message more than once.
+    """,
+    parameters={
+        "type": "object",
+        "properties": {
+            "message_id": {
+                "type": "string",
+                "description": "The ID of the message to reply to.",
+            },
+            "channel_id": {
+                "type": "string",
+                "description": "The ID of the channel to reply in.",
+            },
+            "reply": {
+                "type": "string",
+                "description": "The text to send as a reply. Must be <= 2000 characters.",
+            },
+        },
+        "required": ["message_id", "channel_id", "reply"],
+    },
+    handler=send_reply
+)
+
+async def stop_replying(parameters: dict[str, str]):
+    channel_id = parameters["channel_id"]
+    channel = await client.fetch_channel(channel_id)
+    
+    message_id = parameters["message_id"]
+    message = await channel.fetch_message(message_id)
+    
+    reason = parameters["reason"]
+    
+    if config.debug_mode:
+        print(f"Ending reply: {parameters}")
+
+
+openai_client.register_function(
+    name="send_reply",
+    description="""
+        Must be called to reply.
+        Can be called repeatedly to reply to the same message more than once.
+    """,
+    parameters={
+        "type": "object",
+        "properties": {
+            "message_id": {
+                "type": "string",
+                "description": "The ID of the message to reply to.",
+            },
+            "channel_id": {
+                "type": "string",
+                "description": "The ID of the channel to reply in.",
+            },
+            "reply": {
+                "type": "string",
+                "description": "The text to send as a reply. Must be <= 2000 characters.",
+            },
+        },
+        "required": ["message_id", "channel_id", "reply"],
+    },
+    handler=send_reply
+)
 
 @client.event
 async def on_ready():
@@ -114,12 +192,15 @@ async def handle_message(message: discord.Message):
     )
 
     response = await openai_client.get_response(completion_messages)
-    response_message = response.content or "hmmmm"
+    
+    if config.debug_mode:
+        response_message = response.content or ""
+        print(f"Non-functional response received:\n  {response_message}")
 
-    if thread is not None:
-        await thread.send(response_message)
-    else:
-        await message.reply(response_message)
+    # if thread is not None:
+    #     await thread.send(response_message)
+    # else:
+    #     await message.reply(response_message)
 
 
 def determine_if_mentioned(message: discord.Message):
@@ -146,7 +227,8 @@ def create_system_message(
         "You are able to be tagged by any users, by name or role, and can reply in DMs.",
         "Keep your response to under 2000 characters.",
         f"Your details: {str(getattr(message.channel, 'me', client.user))}",
-        "Only call the functions you have been provided."
+        "Only call the functions you have been provided.",
+        "You must call `send_reply` to send a reply."
     ]
 
     if message.guild:

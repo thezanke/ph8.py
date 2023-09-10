@@ -70,6 +70,7 @@ class OpenAIClient:
             "temperature": temperature,
         }
 
+        # Add functions if they exist
         if len(self.functions) > 0:
             req_args["functions"] = self.functions
 
@@ -86,17 +87,18 @@ class OpenAIClient:
                 print(
                     f"OpenAI function call: {response_message['function_call']}")
 
-            function_name = response_message["function_call"]["name"]
-            function_params = json.loads(
+            handler_name = response_message["function_call"]["name"]
+            handler_parameters = json.loads(
                 response_message["function_call"]["arguments"])
-            function = self.func_register[function_name]
-            function_response = await function(function_params)
-            fn_response_message = {
-                "content": function_response,
+            handler = self.func_register[handler_name]
+            
+            handler_response = await handler(handler_parameters)
+            
+            messages.append({
+                "content": handler_response,
                 "role": "function",
-                "name": function_name,
-            }
-            messages.append(fn_response_message)
+                "name": handler_name,
+            })
 
             return await self.get_response(
                 messages=messages, model=model, temperature=temperature
