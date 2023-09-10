@@ -3,6 +3,7 @@ import json
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 import openai
 import config
+from typings import CompletionMessage
 
 
 openai.api_key = config.openai["api_key"]
@@ -56,7 +57,7 @@ class OpenAIClient:
     @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
     async def get_response(
         self,
-        messages: list[dict[str, str]],
+        messages: list[CompletionMessage],
         model="gpt-3.5-turbo-16k-0613",
         temperature=0.9,
     ):
@@ -100,11 +101,12 @@ class OpenAIClient:
                 "name": handler_name,
             })
 
-            return await self.get_response(
-                messages=messages, model=model, temperature=temperature
-            )
+            if handler_name != "complete_request":
+                return await self.get_response(
+                    messages=messages, model=model, temperature=temperature
+                )
 
-        return response_message
+        return full_response
 
 
     @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))

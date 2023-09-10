@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import NotRequired, TypedDict
 from bs4 import BeautifulSoup
 import certifi
 import os
@@ -7,6 +8,7 @@ import requests
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 import config
 from openai_client import openai_client
+from typings import CompletionMessage
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
@@ -24,6 +26,7 @@ async def get_content_from_url(parameters: dict[str, str]):
 
     return soup.text
 
+
 openai_client.register_function(
     name="get_content_from_url",
     description="Get the text content from a URL",
@@ -37,19 +40,30 @@ openai_client.register_function(
         },
         "required": ["url"],
     },
-    handler=get_content_from_url
+    handler=get_content_from_url,
 )
 
-async def send_reply(parameters: dict[str, str]):
+
+class SendReplyParams(TypedDict):
+    message_id: int
+    channel_id: int
+    reply: str
+
+
+async def send_reply(parameters: SendReplyParams):
     channel_id = parameters["channel_id"]
     channel = await client.fetch_channel(channel_id)
-    
+
+    assert isinstance(channel, (discord.TextChannel, discord.Thread, discord.DMChannel))
+
     message_id = parameters["message_id"]
     message = await channel.fetch_message(message_id)
-    
-    reply = parameters["reply"]
-    
-    await message.reply(reply)
+
+    reply_text = parameters["reply"]
+
+    reply = await message.reply(reply_text)
+
+    return create_openai_input_message(reply)
 
 
 openai_client.register_function(
@@ -62,11 +76,11 @@ openai_client.register_function(
         "type": "object",
         "properties": {
             "message_id": {
-                "type": "string",
+                "type": "number",
                 "description": "The ID of the message to reply to.",
             },
             "channel_id": {
-                "type": "string",
+                "type": "number",
                 "description": "The ID of the channel to reply in.",
             },
             "reply": {
@@ -76,48 +90,55 @@ openai_client.register_function(
         },
         "required": ["message_id", "channel_id", "reply"],
     },
-    handler=send_reply
+    handler=send_reply,
 )
 
-async def stop_replying(parameters: dict[str, str]):
-    channel_id = parameters["channel_id"]
-    channel = await client.fetch_channel(channel_id)
-    
+
+class CompleteRequestParams(TypedDict):
+    message_id: int
+    channel_id: int
+    reason: NotRequired[str]
+
+
+async def complete_request(parameters: CompleteRequestParams):
     message_id = parameters["message_id"]
-    message = await channel.fetch_message(message_id)
-    
-    reason = parameters["reason"]
-    
+    channel_id = parameters["channel_id"]
+    reason = f'"{parameters["reason"]}"' if "reason" in parameters else None
+
     if config.debug_mode:
-        print(f"Ending reply: {parameters}")
+        print(
+            f"Request complete message_id={message_id}, channel_id={channel_id}, reason={reason}"
+        )
+
+    return "Request complete."
 
 
 openai_client.register_function(
-    name="send_reply",
+    name="complete_request",
     description="""
-        Must be called to reply.
-        Can be called repeatedly to reply to the same message more than once.
+        Must be called to complete a request and break the function call loop.
     """,
     parameters={
         "type": "object",
         "properties": {
             "message_id": {
-                "type": "string",
-                "description": "The ID of the message to reply to.",
+                "type": "number",
+                "description": "The ID of the request message.",
             },
             "channel_id": {
-                "type": "string",
-                "description": "The ID of the channel to reply in.",
+                "type": "number",
+                "description": "The ID of the channel the message was in.",
             },
-            "reply": {
+            "reason": {
                 "type": "string",
-                "description": "The text to send as a reply. Must be <= 2000 characters.",
+                "description": "An optional reason why the request is considered complete.",
             },
         },
-        "required": ["message_id", "channel_id", "reply"],
+        "required": ["message_id", "channel_id"],
     },
-    handler=send_reply
+    handler=complete_request,
 )
+
 
 @client.event
 async def on_ready():
@@ -130,7 +151,6 @@ async def on_message(message: discord.Message):
         return
 
     return await handle_message(message)
-
 
 async def handle_message(message: discord.Message):
     is_dm = isinstance(message.channel, discord.DMChannel)
@@ -180,7 +200,7 @@ async def handle_message(message: discord.Message):
     else:
         await message.channel.typing()
 
-    completion_messages = [
+    completion_messages: list[CompletionMessage] = [
         {
             "content": create_system_message(message, messages, thread),
             "role": "system",
@@ -192,10 +212,22 @@ async def handle_message(message: discord.Message):
     )
 
     response = await openai_client.get_response(completion_messages)
-    
-    if config.debug_mode:
-        response_message = response.content or ""
-        print(f"Non-functional response received:\n  {response_message}")
+
+    while response["finish_reason"] == "stop":
+        response_message = response["message"]
+
+        if config.debug_mode:
+            print(f"Non-functional response received:\n  {response_message}")
+
+        completion_messages.append(response_message)
+        completion_messages.append(
+            {
+                "content": "Please call `send_reply` or `complete_request` using your response to continue.",
+                "role": "system",
+            }
+        )
+
+        response = await openai_client.get_response(completion_messages)
 
     # if thread is not None:
     #     await thread.send(response_message)
@@ -225,10 +257,10 @@ def create_system_message(
     details = [
         "You are a multi-user chat assistant.",
         "You are able to be tagged by any users, by name or role, and can reply in DMs.",
-        "Keep your response to under 2000 characters.",
         f"Your details: {str(getattr(message.channel, 'me', client.user))}",
         "Only call the functions you have been provided.",
-        "You must call `send_reply` to send a reply."
+        "You must call `send_reply` to send a reply.",
+        "You must call `request_complete` when you are done handling a request.",
     ]
 
     if message.guild:
@@ -254,9 +286,7 @@ def create_system_message(
         )
 
     participants = getattr(
-        message.channel,
-        "members",
-        set([message.author for message in messages])
+        message.channel, "members", set([message.author for message in messages])
     )
 
     participants_details = {p.id: str(p) for p in participants}
@@ -295,13 +325,14 @@ async def get_thread_messages(message: discord.Message):
 
 
 async def generate_thread_name(messages: list[discord.Message]):
-    thread_str = "\n".join([
-        f"\t{get_discord_message_details(message)}" for message in messages
-    ])
+    thread_str = "\n".join(
+        [f"\t{get_discord_message_details(message)}" for message in messages]
+    )
 
-    completion_messages = [
+    completion_messages: list[CompletionMessage] = [
         {
-            "content": dedent(f"""
+            "content": dedent(
+                f"""
                 Return a funny title for this thread:
                 {thread_str}
                 
@@ -309,7 +340,8 @@ async def generate_thread_name(messages: list[discord.Message]):
                 * Must be between 1 and 100 characters.
                 * Must be clever or funny.
                 * Must be titlecased. Must not be quoted.
-                * Must not contain any user IDs or mentions."""),
+                * Must not contain any user IDs or mentions."""
+            ),
             "role": "system",
         }
     ]
@@ -341,7 +373,7 @@ def get_reference_id(message: discord.Message):
     return message.reference and message.reference.message_id
 
 
-def create_openai_input_message(message: discord.Message):
+def create_openai_input_message(message: discord.Message) -> CompletionMessage:
     if message.author == client.user:
         return {
             "role": "assistant",
@@ -360,7 +392,7 @@ def get_discord_message_details(message: discord.Message):
         "content": message.content,
         "author": get_user_details(message.author),
         "attachments": [get_attachment_details(a) for a in message.attachments],
-        "embeds": [get_embed_details(e) for e in message.embeds]
+        "embeds": [get_embed_details(e) for e in message.embeds],
     }
 
 
@@ -412,7 +444,11 @@ PARTICIPANT_KEYS = ("id", "name", "bot", "nick")
 
 
 def get_user_details(
-    participant: discord.User | discord.Member | discord.ThreadMember | discord.ClientUser | None,
+    participant: discord.User
+    | discord.Member
+    | discord.ThreadMember
+    | discord.ClientUser
+    | None,
 ):
     return {key: getattr(participant, key, "N/A") for key in PARTICIPANT_KEYS}
 
