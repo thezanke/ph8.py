@@ -7,8 +7,7 @@ import discord
 import requests
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 import config
-from openai_client import openai_client
-from typings import CompletionMessage
+from openai_client import OpenAICompletionMessage, openai_client
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
@@ -152,6 +151,7 @@ async def on_message(message: discord.Message):
 
     return await handle_message(message)
 
+
 async def handle_message(message: discord.Message):
     is_dm = isinstance(message.channel, discord.DMChannel)
     is_mentioned = determine_if_mentioned(message)
@@ -200,7 +200,7 @@ async def handle_message(message: discord.Message):
     else:
         await message.channel.typing()
 
-    completion_messages: list[CompletionMessage] = [
+    completion_messages: list[OpenAICompletionMessage] = [
         {
             "content": create_system_message(message, messages, thread),
             "role": "system",
@@ -329,7 +329,7 @@ async def generate_thread_name(messages: list[discord.Message]):
         [f"\t{get_discord_message_details(message)}" for message in messages]
     )
 
-    completion_messages: list[CompletionMessage] = [
+    completion_messages: list[OpenAICompletionMessage] = [
         {
             "content": dedent(
                 f"""
@@ -373,7 +373,7 @@ def get_reference_id(message: discord.Message):
     return message.reference and message.reference.message_id
 
 
-def create_openai_input_message(message: discord.Message) -> CompletionMessage:
+def create_openai_input_message(message: discord.Message) -> OpenAICompletionMessage:
     if message.author == client.user:
         return {
             "role": "assistant",

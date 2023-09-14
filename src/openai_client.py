@@ -3,10 +3,15 @@ import json
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 import openai
 import config
-from typings import CompletionMessage
-
+from typing import NotRequired, TypedDict
 
 openai.api_key = config.openai["api_key"]
+
+
+class OpenAICompletionMessage(TypedDict):
+    content: str
+    role: str
+    name: NotRequired[str]
 
 
 class OpenAIClient:
@@ -29,8 +34,9 @@ class OpenAIClient:
         )
         self.func_register[name] = handler
 
-    
-    @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
+    )
     async def get_summary(
         self,
         input: str,
@@ -54,10 +60,12 @@ class OpenAIClient:
 
         return response_message.content
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
+    )
     async def get_response(
         self,
-        messages: list[CompletionMessage],
+        messages: list[OpenAICompletionMessage],
         model="gpt-3.5-turbo-16k-0613",
         temperature=0.9,
     ):
@@ -85,21 +93,23 @@ class OpenAIClient:
 
         if full_response["finish_reason"] == "function_call":
             if config.debug_mode:
-                print(
-                    f"OpenAI function call: {response_message['function_call']}")
+                print(f"OpenAI function call: {response_message['function_call']}")
 
             handler_name = response_message["function_call"]["name"]
             handler_parameters = json.loads(
-                response_message["function_call"]["arguments"])
+                response_message["function_call"]["arguments"]
+            )
             handler = self.func_register[handler_name]
-            
+
             handler_response = await handler(handler_parameters)
-            
-            messages.append({
-                "content": handler_response,
-                "role": "function",
-                "name": handler_name,
-            })
+
+            messages.append(
+                {
+                    "content": handler_response,
+                    "role": "function",
+                    "name": handler_name,
+                }
+            )
 
             if handler_name != "complete_request":
                 return await self.get_response(
@@ -108,8 +118,9 @@ class OpenAIClient:
 
         return full_response
 
-
-    @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
+    )
     async def get_moderation_approval(self, message_content: str):
         if config.debug_mode:
             print(f"OpenAI moderation requested for: {message_content}")
@@ -125,5 +136,6 @@ class OpenAIClient:
             print(f"OpenAI moderation flagged: {flagged}")
 
         return not flagged
+
 
 openai_client = OpenAIClient()
