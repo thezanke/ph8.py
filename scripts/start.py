@@ -9,8 +9,9 @@ def watch():
         "--pattern=*.py",
         "--recursive",
         "--",
-        "python",
-        "src/ph8.py",
+        "poetry",
+        "run",
+        "ph8:main"
     ]
 
     try:

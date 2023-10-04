@@ -1,10 +1,9 @@
 [tool.poetry]
-name = "ph8-py"
-version = "0.1.0"
+name = "ph8"
+version = "0.2.0"
 description = ""
 authors = ["Alex Howard <thezanke@gmail.com>"]
 readme = "README.md"
-packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -16,9 +15,10 @@ watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
 beautifulsoup4 = "^4.12.2"
 tenacity = "^8.2.3"
 
-[tool.poetry.scripts]
-watch = "scripts.start:watch"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+start = "ph8.main:init"
+watch = "scripts.start:watch"

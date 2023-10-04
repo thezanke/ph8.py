@@ -1,13 +1,13 @@
+from bs4 import BeautifulSoup
+from ph8.openai import openai_client, OpenAICompletionMessage
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 from textwrap import dedent
 from typing import NotRequired, TypedDict
-from bs4 import BeautifulSoup
 import certifi
-import os
 import discord
+import os
+import ph8.config
 import requests
-from tenacity import retry, wait_random_exponential, stop_after_attempt
-import config
-from openai_client import OpenAICompletionMessage, openai_client
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
@@ -53,7 +53,8 @@ async def send_reply(parameters: SendReplyParams):
     channel_id = parameters["channel_id"]
     channel = await client.fetch_channel(channel_id)
 
-    assert isinstance(channel, (discord.TextChannel, discord.Thread, discord.DMChannel))
+    assert isinstance(channel, (discord.TextChannel,
+                      discord.Thread, discord.DMChannel))
 
     message_id = parameters["message_id"]
     message = await channel.fetch_message(message_id)
@@ -104,7 +105,7 @@ async def complete_request(parameters: CompleteRequestParams):
     channel_id = parameters["channel_id"]
     reason = f'"{parameters["reason"]}"' if "reason" in parameters else None
 
-    if config.debug_mode:
+    if ph8.config.debug_mode:
         print(
             f"Request complete message_id={message_id}, channel_id={channel_id}, reason={reason}"
         )
@@ -162,11 +163,11 @@ async def handle_message(message: discord.Message):
     if not should_respond:
         return
 
-    if config.debug_mode:
+    if ph8.config.debug_mode:
         print(f"Received message:\n  {message.author.name}: {message.content}")
 
     if message.author.bot:
-        if config.debug_mode:
+        if ph8.config.debug_mode:
             print(f"Ignoring message from bot: {message.author.name}")
         return
 
@@ -188,7 +189,7 @@ async def handle_message(message: discord.Message):
     if should_create_thread:
         thread_name = await generate_thread_name(messages)
 
-        if config.debug_mode:
+        if ph8.config.debug_mode:
             print(f"Creating thread with name: {thread_name}")
 
         thread = await message.create_thread(
@@ -216,7 +217,7 @@ async def handle_message(message: discord.Message):
     while response["finish_reason"] == "stop":
         response_message = response["message"]
 
-        if config.debug_mode:
+        if ph8.config.debug_mode:
             print(f"Non-functional response received:\n  {response_message}")
 
         completion_messages.append(response_message)
@@ -286,7 +287,8 @@ def create_system_message(
         )
 
     participants = getattr(
-        message.channel, "members", set([message.author for message in messages])
+        message.channel, "members", set(
+            [message.author for message in messages])
     )
 
     participants_details = {p.id: str(p) for p in participants}
@@ -453,4 +455,5 @@ def get_user_details(
     return {key: getattr(participant, key, "N/A") for key in PARTICIPANT_KEYS}
 
 
-client.run(config.discord["token"])
+def init():
+    client.run(ph8.config.discord["token"])

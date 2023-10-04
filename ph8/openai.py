@@ -1,9 +1,9 @@
-from typing import cast
-import json
 from tenacity import retry, wait_random_exponential, stop_after_attempt
-import openai
-import config
+from typing import cast
 from typing import NotRequired, TypedDict
+import json
+import openai
+import ph8.config as config
 
 openai.api_key = config.openai["api_key"]
 
@@ -93,7 +93,8 @@ class OpenAIClient:
 
         if full_response["finish_reason"] == "function_call":
             if config.debug_mode:
-                print(f"OpenAI function call: {response_message['function_call']}")
+                print(
+                    f"OpenAI function call: {response_message['function_call']}")
 
             handler_name = response_message["function_call"]["name"]
             handler_parameters = json.loads(
