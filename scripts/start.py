@@ -11,7 +11,7 @@ def watch():
         "--",
         "poetry",
         "run",
-        "ph8:main"
+        "start"
     ]
 
     try:
