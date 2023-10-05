@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 from ph8.openai import openai_client, OpenAICompletionMessage
-from tenacity import retry, wait_random_exponential, stop_after_attempt
 from textwrap import dedent
 from typing import NotRequired, TypedDict
 import certifi
@@ -17,7 +16,6 @@ client: discord.Client = discord.Client(
 )
 
 
-@retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
 async def get_content_from_url(parameters: dict[str, str]):
     url = parameters["url"]
     response = requests.get(url, headers={"User-Agent": ""})
@@ -53,8 +51,7 @@ async def send_reply(parameters: SendReplyParams):
     channel_id = parameters["channel_id"]
     channel = await client.fetch_channel(channel_id)
 
-    assert isinstance(channel, (discord.TextChannel,
-                      discord.Thread, discord.DMChannel))
+    assert isinstance(channel, (discord.TextChannel, discord.Thread, discord.DMChannel))
 
     message_id = parameters["message_id"]
     message = await channel.fetch_message(message_id)
@@ -66,78 +63,10 @@ async def send_reply(parameters: SendReplyParams):
     return create_openai_input_message(reply)
 
 
-openai_client.register_function(
-    name="send_reply",
-    description="""
-        Must be called to reply.
-        Can be called repeatedly to reply to the same message more than once.
-    """,
-    parameters={
-        "type": "object",
-        "properties": {
-            "message_id": {
-                "type": "number",
-                "description": "The ID of the message to reply to.",
-            },
-            "channel_id": {
-                "type": "number",
-                "description": "The ID of the channel to reply in.",
-            },
-            "reply": {
-                "type": "string",
-                "description": "The text to send as a reply. Must be <= 2000 characters.",
-            },
-        },
-        "required": ["message_id", "channel_id", "reply"],
-    },
-    handler=send_reply,
-)
-
-
 class CompleteRequestParams(TypedDict):
     message_id: int
     channel_id: int
     reason: NotRequired[str]
-
-
-async def complete_request(parameters: CompleteRequestParams):
-    message_id = parameters["message_id"]
-    channel_id = parameters["channel_id"]
-    reason = f'"{parameters["reason"]}"' if "reason" in parameters else None
-
-    if ph8.config.debug_mode:
-        print(
-            f"Request complete message_id={message_id}, channel_id={channel_id}, reason={reason}"
-        )
-
-    return "Request complete."
-
-
-openai_client.register_function(
-    name="complete_request",
-    description="""
-        Must be called to complete a request and break the function call loop.
-    """,
-    parameters={
-        "type": "object",
-        "properties": {
-            "message_id": {
-                "type": "number",
-                "description": "The ID of the request message.",
-            },
-            "channel_id": {
-                "type": "number",
-                "description": "The ID of the channel the message was in.",
-            },
-            "reason": {
-                "type": "string",
-                "description": "An optional reason why the request is considered complete.",
-            },
-        },
-        "required": ["message_id", "channel_id"],
-    },
-    handler=complete_request,
-)
 
 
 @client.event
@@ -287,8 +216,7 @@ def create_system_message(
         )
 
     participants = getattr(
-        message.channel, "members", set(
-            [message.author for message in messages])
+        message.channel, "members", set([message.author for message in messages])
     )
 
     participants_details = {p.id: str(p) for p in participants}

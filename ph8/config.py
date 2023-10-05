@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 
-required_vars = ["DISCORD_BOT_TOKEN", "OPENAI_API_SECRET"]
+required_vars = ["DISCORD_BOT_TOKEN", "OPENAI_API_KEY"]
 
 
 def validate_env():
@@ -17,7 +17,7 @@ load_dotenv()
 validate_env()
 
 openai = {
-    "api_key": str(os.getenv("OPENAI_API_SECRET")),
+    "api_key": str(os.getenv("OPENAI_API_KEY")),
 }
 
 discord = {

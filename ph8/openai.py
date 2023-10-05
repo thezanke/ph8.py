@@ -34,9 +34,6 @@ class OpenAIClient:
         )
         self.func_register[name] = handler
 
-    @retry(
-        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
-    )
     async def get_summary(
         self,
         input: str,
@@ -60,9 +57,6 @@ class OpenAIClient:
 
         return response_message.content
 
-    @retry(
-        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
-    )
     async def get_response(
         self,
         messages: list[OpenAICompletionMessage],
@@ -93,8 +87,7 @@ class OpenAIClient:
 
         if full_response["finish_reason"] == "function_call":
             if config.debug_mode:
-                print(
-                    f"OpenAI function call: {response_message['function_call']}")
+                print(f"OpenAI function call: {response_message['function_call']}")
 
             handler_name = response_message["function_call"]["name"]
             handler_parameters = json.loads(
@@ -119,9 +112,6 @@ class OpenAIClient:
 
         return full_response
 
-    @retry(
-        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
-    )
     async def get_moderation_approval(self, message_content: str):
         if config.debug_mode:
             print(f"OpenAI moderation requested for: {message_content}")
