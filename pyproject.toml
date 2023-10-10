@@ -15,11 +15,12 @@ watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
 beautifulsoup4 = "^4.12.2"
 tenacity = "^8.2.3"
 langchain = "^0.0.308"
+poethepoet = "^0.24.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-start = "ph8.main:init"
-watch = "scripts.start:watch"
+[tool.poe.tasks]
+start.script = "ph8.main:init"
+watch = "watchmedo auto-restart --directory=ph8 --pattern=*.py --recursive -- poe start"
