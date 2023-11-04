@@ -49,7 +49,6 @@ COPY --chown=${APP_USER}:${APP_USER} --from=build-deps ${PYTHONPATH}/.venv ${PYT
 COPY --chown=${APP_USER}:${APP_USER} ph8 ${PYTHONPATH}/ph8
 
 USER ${APP_UID}
-
 EXPOSE ${APP_PORT}
 
 CMD ["python", "-m", "ph8.main"]
