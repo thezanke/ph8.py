@@ -11,10 +11,12 @@ python = "^3.11"
 openai = "^0.28.0"
 python-dotenv = "^1.0.0"
 certifi = "^2023.7.22"
-watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
 beautifulsoup4 = "^4.12.2"
 tenacity = "^8.2.3"
 langchain = "^0.0.308"
+
+[tool.poetry.dev-dependencies]
+watchdog = {version = "^3.0.0", extras = ["watchmedo"]}
 poethepoet = "^0.24.1"
 
 [build-system]
