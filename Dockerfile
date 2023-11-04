@@ -1,6 +1,6 @@
 ARG APP_USER=ph8
 ARG APP_UID=1001
-ARG APP_ROOT=/home/${APP_USER}
+ARG APP_ROOT=/app
 ARG APP_PORT=8118
 
 ###
@@ -24,18 +24,17 @@ ENV PATH="$VIRTUAL_ENVIRONMENT_PATH/bin:$PATH"
 RUN groupadd -g ${APP_UID} ${APP_USER} && \
   useradd -r -u ${APP_UID} -g ${APP_USER} ${APP_USER}
 
-WORKDIR ${PYTHONPATH}
+WORKDIR ${APP_ROOT}
 
-RUN chown ${APP_USER}:${APP_USER} ${PYTHONPATH}
+RUN chown ${APP_USER}:${APP_USER} ${APP_ROOT}
 RUN mkdir ${POETRY_CACHE_DIR} && chown ${APP_USER}:${APP_USER} ${POETRY_CACHE_DIR}
 
 ###
 # Stage: build deps
 ###
 FROM base-stage AS build-deps
-ARG APP_ROOT
 COPY ./poetry.lock ./pyproject.toml ./
-RUN --mount=type=cache,target=${APP_ROOT}/.cache \
+RUN --mount=type=cache,target=${POETRY_CACHE_DIR} \
   poetry install --no-interaction --no-root --without dev
 
 ###
@@ -44,11 +43,10 @@ RUN --mount=type=cache,target=${APP_ROOT}/.cache \
 FROM base-stage AS production
 
 ARG APP_USER
-ARG APP_ROOT
 ARG APP_PORT
 
-COPY --chown=${APP_USER}:${APP_USER} --from=build-deps ${APP_ROOT}/.venv ${APP_ROOT}/.venv
-COPY --chown=${APP_USER}:${APP_USER} ph8 ${APP_ROOT}/ph8
+COPY --chown=${APP_USER}:${APP_USER} --from=build-deps ${PYTHONPATH}/.venv ${PYTHONPATH}/.venv
+COPY --chown=${APP_USER}:${APP_USER} ph8 ${PYTHONPATH}/ph8
 
 USER ${APP_UID}
 
