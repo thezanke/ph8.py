@@ -1,33 +1,18 @@
-FROM python:3.11 as base
+# https://github.com/max-pfeiffer/python-poetry/blob/main/build/Dockerfile
 
-ENV PYHTONFAULTHANDER=1 \
-  PYTHONHASHSEED=random \
-  PYTHONUNBUFFERED=1
+FROM pfeiffermax/python-poetry:1.7.0-poetry1.6.1-python3.11.6-slim-bookworm AS base
 
-WORKDIR /app
 
-FROM base as builder
+###
+# Stage: build dependencies
+###
+FROM base AS build-deps
+COPY ./poetry.lock ./pyproject.toml ./
+RUN poetry install --no-interaction --no-root --without dev
 
-ENV PIP_DEFAULT_TIMEOUT=100 \
-  PIP_DISABLE_PIP_VERSION_CHECK=1 \
-  PIP_NO_CACHE_DIR=1 \
-  POETRY_VERSION=1.6.1
-
-RUN pip install "poetry==$POETRY_VERSION"
-RUN python -m venv /venv
-
-COPY pyproject.toml poetry.lock README.md ./
-COPY src ./src
-RUN poetry config virtualenvs.in-project true && \
-    poetry install --only=main --no-root && \
-    poetry build
-
-FROM base as final 
-
-COPY --from=builder /app/.venv ./.venv
-COPY --from=builder /app/dist .
-COPY --from=builder /app/src ./src
-COPY docker-entrypoint.sh .
-
-RUN ./.venv/bin/pip install *.whl
-CMD ["./docker-entrypoint.sh"]
+###
+# Stage: production
+###
+FROM base AS production
+COPY --chown=${APP_USER}:${APP_USER} /ph8 ./ph8
+CMD [ "python", "--version" ]
