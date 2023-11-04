@@ -4,6 +4,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
+import ph8.config
 
 SYSTEM_PROMPT = dedent(
     """
@@ -21,9 +22,13 @@ prompt = ChatPromptTemplate.from_messages(
     [("system", SYSTEM_PROMPT), ("human", HUMAN_PROMPT)]
 )
 
-model = ChatOpenAI()
+model = ChatOpenAI(
+    model=ph8.config.models.default,
+)
 
-chain = {"user_message": RunnablePassthrough()} | prompt | model | StrOutputParser()
+conversational = (
+    {"user_message": RunnablePassthrough()} | prompt | model | StrOutputParser()
+)
 
 
 if __name__ == "__main__":
@@ -41,5 +46,5 @@ if __name__ == "__main__":
     user_message = " ".join(argv[1:])
     print(f"user: {user_message}")
 
-    response = chain.invoke(user_message)
+    response = conversational.invoke(user_message)
     print(f"ph8: {response}")

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  chromadb:
+    image: chromadb
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chromadb
+      MYSQL_USER: chroma
+      MYSQL_PASSWORD: chroma

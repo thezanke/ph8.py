@@ -5,7 +5,7 @@ import json
 import openai
 import ph8.config as config
 
-openai.api_key = config.openai["api_key"]
+openai.api_key = config.openai.api_key
 
 
 class OpenAICompletionMessage(TypedDict):

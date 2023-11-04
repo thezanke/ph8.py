@@ -1,27 +1,33 @@
+from types import SimpleNamespace
 from dotenv import load_dotenv
 import os
 
-required_vars = ["DISCORD_BOT_TOKEN", "OPENAI_API_KEY"]
 
-
-def validate_env():
-    for var in required_vars:
-        value = os.getenv(var)
-        if value is None:
-            raise EnvironmentError(
-                f"Environment variable {var} is missing or set to None."
-            )
+def getenv(name, default=None, cast=None):
+    value = os.getenv(name)
+    if value is None:
+        if default is not None:
+            value = default
+        else:
+            raise ValueError(f"Missing required environment variable {name}")
+    if cast is not None:
+        value = cast(value)
+    return value
 
 
 load_dotenv()
-validate_env()
 
-openai = {
-    "api_key": str(os.getenv("OPENAI_API_KEY")),
-}
 
-discord = {
-    "token": str(os.getenv("DISCORD_BOT_TOKEN")),
-}
+openai = SimpleNamespace(
+    api_key=getenv("OPENAI_API_KEY"),
+)
 
-debug_mode = bool(os.getenv("DEBUG"))
+discord = SimpleNamespace(
+    token=getenv("DISCORD_BOT_TOKEN"),
+)
+
+models = SimpleNamespace(
+    default=getenv("DEFAULT_LLM_MODEL"),
+)
+
+debug_mode = getenv("DEBUG", default=False, cast=bool)
