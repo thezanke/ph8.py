@@ -68,9 +68,10 @@ async def determine_if_reply(message: discord.Message):
 
 
 async def create_message_details(message: discord.Message):
-    is_mentioned = determine_if_mentioned(message)
-    is_reply = await determine_if_reply(message)
-    is_dm = isinstance(message.channel, discord.DMChannel)
+    is_self = message.author == client.user
+    is_mentioned = not is_self or determine_if_mentioned(message)
+    is_reply = not is_self or await determine_if_reply(message)
+    is_dm = not is_self or isinstance(message.channel, discord.DMChannel)
 
     details = MessageDetails(
         message=message,
@@ -108,10 +109,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message):
-    if message.author == client.user:
-        return
-
-    mp = await create_message_details(message)
+    details = await create_message_details(message)
 
     for handler in handlers:
-        await handler(mp)
+        await handler(details)

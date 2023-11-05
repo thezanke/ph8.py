@@ -2,8 +2,14 @@ import ph8.discord
 import ph8.config
 import ph8.chains
 
+messages: list[ph8.discord.MessageDetails] = []
+
+def store_message(message: ph8.discord.MessageDetails):
+    messages.append(message)
 
 async def handle_message(details: ph8.discord.MessageDetails):
+    store_message(details)
+    
     if not details.should_respond:
         return
 
