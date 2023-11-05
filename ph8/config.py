@@ -5,13 +5,15 @@ import os
 
 def getenv(name, default=None, cast=None):
     value = os.getenv(name)
+
     if value is None:
-        if default is not None:
-            value = default
-        else:
+        if default is None:
             raise ValueError(f"Missing required environment variable {name}")
+        value = default
+
     if cast is not None:
         value = cast(value)
+
     return value
 
 

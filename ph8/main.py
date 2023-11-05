@@ -1,6 +1,6 @@
 import ph8.discord
 import ph8.config
-import ph8.ai.chains
+import ph8.chains
 
 
 async def handle_message(details: ph8.discord.MessageDetails):
@@ -9,7 +9,7 @@ async def handle_message(details: ph8.discord.MessageDetails):
 
     print(f"Received message: {details.message.content}")
 
-    response = ph8.ai.chains.conversational.invoke(details.message.content)
+    response = ph8.chains.conversational.invoke(details.message.content)
     print(f"Response: {response}")
 
     await details.message.reply(response)
