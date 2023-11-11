@@ -27,21 +27,7 @@ class ConversationCog(commands.Cog, name="Conversation"):
 
         await message.reply(response)
 
-    def _is_conversation_response(self, message: discord.Message):
-        if message.reference is None:
-            return False
-
-        if message.reference.resolved is None:
-            return False
-
-        if not isinstance(message.reference.resolved, discord.Message):
-            return False
-
-        if not isinstance(self.bot.user, discord.User):
-            return False
-
-        return message.reference.resolved.author.bot
-
+   
     async def _get_reply_chain(self, message: discord.Message):
         chain = []
         current_message = message
