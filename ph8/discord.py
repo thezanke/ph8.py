@@ -5,7 +5,8 @@ from discord.ext import commands
 class DiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix=commands.when_mentioned,
+            command_prefix="$ph8 ",
+            help_command=None,
             intents=Intents.all(),
             guild_subscriptions=True,
         )
