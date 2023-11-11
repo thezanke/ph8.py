@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 "discord.py" = "^2.3.2"
 langchain = "^0.0.334"
+openai = "^1.2.3"
 
 [tool.poetry.group.dev.dependencies]
 poethepoet = "^0.24.1"
