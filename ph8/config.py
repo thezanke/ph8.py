@@ -1,5 +1,4 @@
 from types import SimpleNamespace
-from dotenv import load_dotenv
 import os
 
 
@@ -15,9 +14,6 @@ def getenv(name, default=None, cast=None):
         value = cast(value)
 
     return value
-
-
-load_dotenv()
 
 
 openai = SimpleNamespace(
