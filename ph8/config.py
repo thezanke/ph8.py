@@ -32,4 +32,6 @@ models = SimpleNamespace(
     default=getenv("DEFAULT_LLM_MODEL"),
 )
 
-debug_mode = getenv("DEBUG", default=False, cast=bool)
+logging = SimpleNamespace(
+    level=getenv("LOG_LEVEL", default="INFO"),
+)
