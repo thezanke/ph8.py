@@ -27,7 +27,6 @@ class ConversationCog(commands.Cog, name="Conversation"):
 
         await message.reply(response)
 
-   
     async def _get_reply_chain(self, message: discord.Message):
         chain = []
         current_message = message
@@ -47,7 +46,6 @@ class ConversationCog(commands.Cog, name="Conversation"):
 
         if self.bot.user and self.bot.user.mentioned_in(message):
             reply_chain = await self._get_reply_chain(message)
-            logger.info("%s", reply_chain)
 
             await self._handle_conversation_message(
                 message=message,

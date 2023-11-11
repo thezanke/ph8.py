@@ -1,21 +1,28 @@
 from textwrap import dedent
+from langchain.chains import OpenAIModerationChain
 from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
-from langchain.schema.runnable import RunnablePassthrough
-from langchain.schema.messages import HumanMessage, SystemMessageChunk
 from langchain.schema.output_parser import StrOutputParser
 import discord
 import discord.ext.commands as commands
 import ph8.config
 
+model = ChatOpenAI(model=ph8.config.models.default)
+moderation = OpenAIModerationChain()
 
-def ainvoke_conversation_chain(
+
+async def ainvoke_conversation_chain(
     bot: commands.Bot,
     message: discord.Message,
     reply_chain: list[discord.Message],
 ):
     if bot.user is None:
         raise ValueError("Bot user is not set")
+
+    modded_content = await moderation.arun(message.content)
+
+    if modded_content != message.content:
+        return modded_content
 
     input_args = {
         "bot_id": bot.user.id,
@@ -39,19 +46,21 @@ def ainvoke_conversation_chain(
     if len(reply_chain) > 0:
         system_message += dedent(
             """
+
                 --- Message history ---
                 {reply_chain}
             """
         )
 
-        input_args["reply_chain"] = "\n".join([f"{m.author.display_name}: {m.content}" for m in reply_chain])
+        input_args["reply_chain"] = "\n".join(
+            [f"{m.author.display_name}: {m.content}" for m in reply_chain]
+        )
 
     prompt = ChatPromptTemplate.from_messages(
         [("system", system_message), "{message_content}"]
     )
 
-    model = ChatOpenAI(model=ph8.config.models.default)
+    chain = prompt | model | StrOutputParser() | moderation
+    response = await chain.ainvoke(input_args)
 
-    chain = prompt | model | StrOutputParser()
-
-    return chain.ainvoke(input_args)
+    return response["output"]
