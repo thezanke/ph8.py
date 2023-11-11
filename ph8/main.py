@@ -1,4 +1,3 @@
-import logging
 from ph8.discord import DiscordBot
 import ph8.config
 import ph8.chains

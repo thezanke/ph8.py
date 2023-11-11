@@ -1,5 +1,3 @@
-from sys import argv
-from textwrap import dedent
 from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.schema.runnable import RunnablePassthrough
