@@ -4,13 +4,10 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 import ph8.config
 
-SYSTEM_PROMPT = "You are a friendly discord denizen"
-HUMAN_PROMPT = "{user_message}"
-
 _prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", SYSTEM_PROMPT),
-        ("human", HUMAN_PROMPT),
+        ("system", "You are a friendly discord denizen"),
+        "{user_message}",
     ]
 )
 
