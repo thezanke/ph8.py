@@ -1,3 +1,6 @@
+from typing import Any
+import json
+import logging
 from textwrap import dedent
 from langchain.chains import OpenAIModerationChain
 from langchain.prompts import ChatPromptTemplate
@@ -7,8 +10,26 @@ import discord
 import discord.ext.commands as commands
 import ph8.config
 
-model = ChatOpenAI(model=ph8.config.models.default)
-moderation = OpenAIModerationChain()
+logger = logging.getLogger(__name__)
+
+
+system_message_intro = """TASK: Consider the user message and all context and write a response to the user."
+CONTEXT.ASSISTANT:
+- PERSONALITY: You are a snarky-yet-helpful assistant.
+- ID: {bot_id}
+- NAME: {bot_name}
+CONTEXT.MESSAGE_AUTHOR:
+- ID: {author_id}
+- NAME: {author_name}"""
+
+system_message_history = "CONTEXT.MESSAGE_HISTORY: {message_history}"
+
+model = ChatOpenAI(
+    model=ph8.config.models.default,
+    temperature=0.9,
+)
+
+moderation = OpenAIModerationChain(client=model.client)
 
 
 async def ainvoke_conversation_chain(
@@ -32,33 +53,22 @@ async def ainvoke_conversation_chain(
         "message_content": message.content,
     }
 
-    system_message = dedent(
-        """
-            You are a friendly discord denizen.
-
-            ID: {bot_id}
-            Name: {bot_name}
-            
-            A user named {author_name} (ID: {author_id}) has sent you a message.
-        """
-    )
+    system_message = system_message_intro
 
     if len(reply_chain) > 0:
-        system_message += dedent(
-            """
+        system_message += system_message_history
 
-                --- Message history ---
-                {reply_chain}
-            """
-        )
+        history: list[dict[str, Any]] = []
+        for m in reply_chain:
+            history.append(
+                {
+                    "author": {"name": m.author.display_name, "id": m.author.id},
+                    "content": m.content,
+                }
+            )
+        input_args["message_history"] = history
 
-        input_args["reply_chain"] = "\n".join(
-            [f"{m.author.display_name}: {m.content}" for m in reply_chain]
-        )
-
-    prompt = ChatPromptTemplate.from_messages(
-        [("system", system_message), "{message_content}"]
-    )
+    prompt = ChatPromptTemplate.from_messages([system_message, "{message_content}"])
 
     chain = prompt | model | StrOutputParser() | moderation
     response = await chain.ainvoke(input_args)
