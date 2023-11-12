@@ -1,11 +1,23 @@
 version: '3'
 services:
-  chromadb:
-    image: chromadb
-    ports:
-      - "3306:3306"
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./ph8:/app/ph8
+    env_file: .env
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: chromadb
-      MYSQL_USER: chroma
-      MYSQL_PASSWORD: chroma
+      - DISABLE_CHROME_SANDBOX=true
+    restart: always
+    stdin_open: true
+    tty: true
+  # chromadb:
+  #   image: chromadb
+  #   ports:
+  #     - "3306:3306"
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_DATABASE: chromadb
+  #     MYSQL_USER: chroma
+  #     MYSQL_PASSWORD: chroma

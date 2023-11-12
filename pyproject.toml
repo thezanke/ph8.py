@@ -10,6 +10,8 @@ python = "^3.11"
 "discord.py" = "^2.3.2"
 langchain = "^0.0.334"
 openai = "^0.28.0"
+selenium = "^4.15.2"
+asyncio = "^3.4.3"
 
 [tool.poetry.group.dev.dependencies]
 poethepoet = "^0.24.1"

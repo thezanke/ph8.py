@@ -45,3 +45,7 @@ Context will be provided to you with each message, use it to formulate your resp
 Use <@user_id> to mention a user in your response when appropriate. (e.g. <@{author_id}>)""",
     ),
 )
+
+chrome = SimpleNamespace(
+    disable_sandbox=getenv("DISABLE_CHROME_SANDBOX", default=False, cast=bool),
+)
