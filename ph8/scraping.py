@@ -36,7 +36,7 @@ def create_chrome_options() -> Options:
 def get_text_content_from_url(url):
     driver = webdriver.Chrome(options=create_chrome_options())
     driver.get(url)
-    element = driver.find_element(By.TAG_NAME, 'body')
+    element = driver.find_element(By.TAG_NAME, "body")
     text_content = element.text
     driver.close()
 
@@ -44,5 +44,5 @@ def get_text_content_from_url(url):
 
 
 if __name__ == "__main__":
-    html = get_text_content_from_url("https://scummy.dev")
-    print(html)
+    text_content = get_text_content_from_url("https://scummy.dev")
+    print(text_content)
