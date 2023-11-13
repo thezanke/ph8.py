@@ -33,3 +33,7 @@ models = SimpleNamespace(
 logging = SimpleNamespace(
     level=getenv("LOG_LEVEL", default="INFO"),
 )
+
+conversation = SimpleNamespace(
+    system_message_intro=getenv("CONVERSATION_SYSTEM_MESSAGE_INTRO"),
+)

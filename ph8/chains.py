@@ -1,7 +1,5 @@
 from typing import Any
-import json
 import logging
-from textwrap import dedent
 from langchain.chains import OpenAIModerationChain
 from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
@@ -13,14 +11,18 @@ import ph8.config
 logger = logging.getLogger(__name__)
 
 
-system_message_intro = """TASK: Consider the user message and all context and write a response to the user."
+system_message_intro = ph8.config.conversation.system_message_intro or """
+TASK: Consider the user message and all context and write a response to the user.
+
 CONTEXT.ASSISTANT:
-- PERSONALITY: You are a snarky-yet-helpful assistant.
+- PERSONALITY: helpfu1=0.9, friendly=0.9, professional=0.5, snarky=0.5, polite=0.6, liberal=0.5
 - ID: {bot_id}
 - NAME: {bot_name}
+
 CONTEXT.MESSAGE_AUTHOR:
 - ID: {author_id}
-- NAME: {author_name}"""
+- NAME: {author_name}
+"""
 
 system_message_history = "CONTEXT.MESSAGE_HISTORY: {message_history}"
 
