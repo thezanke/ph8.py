@@ -22,10 +22,12 @@ openai = SimpleNamespace(
 
 discord = SimpleNamespace(
     token=getenv("DISCORD_BOT_TOKEN"),
+    owner_id=getenv("DISCORD_BOT_OWNER_ID", cast=int),
 )
 
 models = SimpleNamespace(
     default=getenv("DEFAULT_LLM_MODEL"),
+    gpt4="gpt-4-1106-preview"
 )
 
 logging = SimpleNamespace(

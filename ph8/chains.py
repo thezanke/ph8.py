@@ -24,13 +24,6 @@ CONTEXT.MESSAGE_AUTHOR:
 
 system_message_history = "CONTEXT.MESSAGE_HISTORY: {message_history}"
 
-model = ChatOpenAI(
-    model=ph8.config.models.default,
-    temperature=0.9,
-)
-
-moderation = OpenAIModerationChain(client=model.client)
-
 
 async def ainvoke_conversation_chain(
     bot: commands.Bot,
@@ -39,6 +32,15 @@ async def ainvoke_conversation_chain(
 ):
     if bot.user is None:
         raise ValueError("Bot user is not set")
+
+    model = ph8.config.models.default
+    if message.author.id == bot.owner_id:
+        logger.info("Using GPT-4 for owner")
+        model = ph8.config.models.gpt4
+
+    model = ChatOpenAI(model=model, temperature=0.8)
+
+    moderation = OpenAIModerationChain(client=model.client)
 
     modded_content = await moderation.arun(message.content)
 
