@@ -44,7 +44,10 @@ class ConversationCog(commands.Cog, name="Conversation"):
         if message.author.bot:
             return
 
-        if self.bot.user and self.bot.user.mentioned_in(message):
+        if not self.bot.user:
+            return
+        
+        if self.bot.user.mentioned_in(message):
             reply_chain = await self.__get_reply_chain(message)
 
             await self.__handle_conversation_message(
