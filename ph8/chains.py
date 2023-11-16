@@ -1,4 +1,3 @@
-from typing import Any
 import logging
 from langchain.chains import OpenAIModerationChain
 from langchain.prompts import ChatPromptTemplate
@@ -11,9 +10,6 @@ import ph8.config
 logger = logging.getLogger(__name__)
 
 
-system_message_history = "CONTEXT.MESSAGE_HISTORY: {message_history}"
-
-
 async def ainvoke_conversation_chain(
     bot: commands.Bot,
     message: discord.Message,
@@ -23,12 +19,11 @@ async def ainvoke_conversation_chain(
         raise ValueError("Bot user is not set")
 
     model = ph8.config.models.default
-    if message.author.id == bot.owner_id:
-        logger.info("Using GPT-4 for owner")
-        model = ph8.config.models.gpt4
+    # if message.author.id == bot.owner_id:
+    #     logger.info("Using GPT-4 for owner")
+    #     model = ph8.config.models.gpt4
 
     model = ChatOpenAI(model=model, temperature=0.8)
-
     moderation = OpenAIModerationChain(client=model.client)
 
     modded_content = await moderation.arun(message.content)
@@ -44,22 +39,31 @@ async def ainvoke_conversation_chain(
         "message_content": message.content,
     }
 
-    system_message = ph8.config.conversation.system_message_intro
+    messages: list[str | tuple[str, str]] = [
+        ("system", ph8.config.conversation.system_message_intro),
+        ("system", "CONTEXT.ASSISTANT:\n\n* NAME: {bot_name}\n* ID: {bot_id}"),
+    ]
 
     if len(reply_chain) > 0:
-        system_message += system_message_history
+        messages.append(("system", "CONTEXT.MESSAGE_HISTORY:\n\n{message_history}"))
 
-        history: list[dict[str, Any]] = []
+        history: list[str] = []
+
         for m in reply_chain:
-            history.append(
-                {
-                    "author": {"name": m.author.display_name, "id": m.author.id},
-                    "content": m.content,
-                }
-            )
-        input_args["message_history"] = history
+            history.append(f"{m.author.display_name} (ID: {m.author.id}): {m.content}")
+        input_args["message_history"] = "\n".join(history)
 
-    prompt = ChatPromptTemplate.from_messages([system_message, "{message_content}"])
+    messages.append(
+        (
+            "system",
+            "CONTEXT.MESSAGE_AUTHOR:\n\n* Name:{author_name}\n* ID: {author_id}",
+        )
+    )
+    messages.append(("human", "{message_content}"))
+
+    logger.info(messages)
+
+    prompt = ChatPromptTemplate.from_messages(messages)
 
     chain = prompt | model | StrOutputParser() | moderation
     response = await chain.ainvoke(input_args)
