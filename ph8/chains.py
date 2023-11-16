@@ -19,9 +19,9 @@ async def ainvoke_conversation_chain(
         raise ValueError("Bot user is not set")
 
     model = ph8.config.models.default
-    # if message.author.id == bot.owner_id:
-    #     logger.info("Using GPT-4 for owner")
-    #     model = ph8.config.models.gpt4
+    if message.author.id == bot.owner_id:
+        logger.info("Using GPT-4 for owner")
+        model = ph8.config.models.gpt4
 
     model = ChatOpenAI(model=model, temperature=0.8)
     moderation = OpenAIModerationChain(client=model.client)
