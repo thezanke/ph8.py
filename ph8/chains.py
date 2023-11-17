@@ -1,4 +1,5 @@
 import logging
+from langchain.callbacks import StdOutCallbackHandler
 from langchain.chains import OpenAIModerationChain
 from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 async def ainvoke_conversation_chain(
     bot: commands.Bot,
     message: discord.Message,
-    reply_chain: list[discord.Message|discord.DeletedReferencedMessage],
+    reply_chain: list[discord.Message | discord.DeletedReferencedMessage],
 ):
     if bot.user is None:
         raise ValueError("Bot user is not set")
@@ -23,7 +24,7 @@ async def ainvoke_conversation_chain(
     #     logger.info("Using GPT-4 for owner")
     #     model = ph8.config.models.gpt4
 
-    model = ChatOpenAI(model=model, temperature=0.8, max_tokens=498, timeout=18.0)
+    model = ChatOpenAI(model=model, temperature=0.8, max_tokens=498)
     moderation = OpenAIModerationChain(client=model.client)
 
     modded_content = await moderation.arun(message.content)
@@ -65,10 +66,7 @@ async def ainvoke_conversation_chain(
     )
     messages.append(("human", "{message_content}"))
 
-    logger.info(messages)
-
     prompt = ChatPromptTemplate.from_messages(messages)
-
     chain = prompt | model | StrOutputParser() | moderation
     response = await chain.ainvoke(input_args)
 

@@ -13,7 +13,6 @@ class DiscordBot(commands.Bot):
             intents=Intents.all(),
             guild_subscriptions=True,
             owner_id=ph8.config.discord.owner_id,
-            max_messages=2000,
         )
 
     async def setup_hook(self):
