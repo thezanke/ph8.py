@@ -27,7 +27,7 @@ class ConversationCog(commands.Cog, name="Conversation"):
         chain = []
         current_message = message
 
-        while reference := message.reference:
+        while reference := current_message.reference:
             if not reference.message_id:
                 break
             current_message = (
