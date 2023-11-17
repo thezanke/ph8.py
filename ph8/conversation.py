@@ -13,7 +13,7 @@ class ConversationCog(commands.Cog, name="Conversation"):
     async def __handle_conversation_message(
         self,
         message: discord.Message,
-        reply_chain: list[discord.Message],
+        reply_chain: list[discord.Message|discord.DeletedReferencedMessage],
     ):
         response = await ph8.chains.ainvoke_conversation_chain(
             bot=self.bot,
@@ -24,16 +24,18 @@ class ConversationCog(commands.Cog, name="Conversation"):
         await message.reply(response)
 
     async def __get_reply_chain(self, message: discord.Message):
-        chain = []
+        chain: list[discord.Message | discord.DeletedReferencedMessage] = []
         current_message = message
 
         while reference := current_message.reference:
             if not reference.message_id:
                 break
+
             current_message = (
-                reference.cached_message
+                reference.resolved
                 or await current_message.channel.fetch_message(reference.message_id)
             )
+
             chain.append(current_message)
 
         chain.reverse()

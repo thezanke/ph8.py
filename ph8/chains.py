@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 async def ainvoke_conversation_chain(
     bot: commands.Bot,
     message: discord.Message,
-    reply_chain: list[discord.Message],
+    reply_chain: list[discord.Message|discord.DeletedReferencedMessage],
 ):
     if bot.user is None:
         raise ValueError("Bot user is not set")
@@ -50,6 +50,10 @@ async def ainvoke_conversation_chain(
         history: list[str] = []
 
         for m in reply_chain:
+            if isinstance(m, discord.DeletedReferencedMessage):
+                history.append("<deleted message>")
+                continue
+
             history.append(f"{m.author.display_name} (ID: {m.author.id}): {m.content}")
         input_args["message_history"] = "\n".join(history)
 
