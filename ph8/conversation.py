@@ -6,10 +6,6 @@ import ph8.chains
 logger = getLogger(__name__)
 
 
-def get_reference_id(message: discord.Message):
-    return message.reference and message.reference.message_id
-
-
 class ConversationCog(commands.Cog, name="Conversation"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -31,8 +27,13 @@ class ConversationCog(commands.Cog, name="Conversation"):
         chain = []
         current_message = message
 
-        while reference_id := get_reference_id(current_message):
-            current_message = await current_message.channel.fetch_message(reference_id)
+        while reference := message.reference:
+            if not reference.message_id:
+                break
+            current_message = (
+                reference.cached_message
+                or await current_message.channel.fetch_message(reference.message_id)
+            )
             chain.append(current_message)
 
         chain.reverse()
@@ -46,7 +47,7 @@ class ConversationCog(commands.Cog, name="Conversation"):
 
         if not self.bot.user:
             return
-        
+
         if self.bot.user.mentioned_in(message):
             reply_chain = await self.__get_reply_chain(message)
 
