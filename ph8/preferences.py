@@ -51,15 +51,15 @@ class PreferencesCog(commands.Cog, name="Preferences"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    async def cog_load(self):
-        models = await self.__get_models()
-        self.model.help = (
-            "Sets the model to use for the bot. Available models:" + "\n".join(models)
-        )
-
     async def __get_models(self):
         response: ModelsResponse = openai.Model.list()  # type: ignore
         return parse_models_response(response)
+
+    async def cog_load(self):
+        models = await self.__get_models()
+        self.model.help = (
+            "Sets the model to use for the bot.\n\nAvailable models:\n  " + "\n  ".join(models)
+        )
 
     @commands.group()
     async def set(self, ctx: commands.Context):
