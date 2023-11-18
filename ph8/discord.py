@@ -9,7 +9,6 @@ class DiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
             command_prefix="$ph8 ",
-            help_command=None,
             intents=Intents.all(),
             guild_subscriptions=True,
             owner_id=ph8.config.discord.owner_id,
@@ -17,3 +16,4 @@ class DiscordBot(commands.Bot):
 
     async def setup_hook(self):
         await self.load_extension("ph8.conversation")
+        await self.load_extension("ph8.preferences")
