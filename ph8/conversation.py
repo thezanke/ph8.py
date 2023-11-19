@@ -1,7 +1,7 @@
-from logging import getLogger
-import discord
 from discord.ext import commands
+from logging import getLogger
 from ph8.cache import LRUCache
+import discord
 import ph8.chains
 
 logger = getLogger(__name__)

@@ -1,13 +1,12 @@
-import logging
-from langchain.callbacks import StdOutCallbackHandler
 from langchain.chains import OpenAIModerationChain
-from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
+from ph8.preferences import Preferences
 import discord
 import discord.ext.commands as commands
+import logging
 import ph8.config
-from ph8.preferences import Preferences
 
 logger = logging.getLogger(__name__)
 
