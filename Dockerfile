@@ -42,6 +42,8 @@ RUN --mount=type=cache,target=${POETRY_CACHE_DIR} \
 ###
 FROM base-stage AS production
 
+LABEL org.opencontainers.image.source = "https://github.com/thezanke/ph8.py"
+
 ARG APP_USER
 ARG APP_PORT
 
