@@ -26,7 +26,6 @@ class OpenAIModelsResponse(TypedDict):
     data: list[OpenAIModel]
 
 
-
 class Preferences(commands.Cog):
     __user_prefs: dict[str, UserPrefDict] = {}
     __cached_models: list[OpenAIModel] = []
