@@ -15,5 +15,6 @@ class DiscordBot(commands.Bot):
         )
 
     async def setup_hook(self):
+        await self.load_extension("ph8.info")
         await self.load_extension("ph8.conversation")
         await self.load_extension("ph8.preferences")
