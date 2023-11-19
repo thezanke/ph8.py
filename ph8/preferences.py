@@ -11,7 +11,7 @@ logger = getLogger(__name__)
 
 
 class UserPrefDict(TypedDict):
-    model_id: str | None
+    model_name: str | None
 
 
 class OpenAIModel(TypedDict):
@@ -66,18 +66,15 @@ class Preferences(commands.Cog):
     def __ensure_user_prefs(self, user_key: str):
         if user_key not in self.__user_prefs:
             self.__user_prefs[user_key] = {
-                "model_id": ph8.config.models.default,
+                "model_name": ph8.config.models.default,
             }
 
     def get_user_pref(self, user_id: int, param: str):
-        logger.info("get_user_pref %s %s", user_id, param)
         user_key = str(user_id)
         self.__ensure_user_prefs(user_key)
-
         return self.__user_prefs[user_key][param]
 
     def set_user_pref(self, user_id: int, param: str, value: Any):
-        logger.info("set_user_pref %s %s %s", user_id, param, value)
         user_key = str(user_id)
         self.__ensure_user_prefs(user_key)
         self.__user_prefs[user_key][param] = value
@@ -88,9 +85,9 @@ class Preferences(commands.Cog):
         ctx: commands.Context,
     ):
         if ctx.invoked_subcommand is None:
-            current_model = self.get_user_pref(ctx.author.id, "model_id")
+            current_model = self.get_user_pref(ctx.author.id, "model_name")
             models = get_models()
-            longest_model_id = max([len(model["id"]) for model in models])
+            longest_model_name = max([len(model["id"]) for model in models])
             models_str = "\n".join(
                 [
                     "|{}| {} | {}".format(
@@ -102,7 +99,7 @@ class Preferences(commands.Cog):
                 ]
             )
 
-            separator_len = longest_model_id + 18
+            separator_len = longest_model_name + 18
 
             await ctx.reply(
                 "```"
@@ -111,7 +108,7 @@ class Preferences(commands.Cog):
                 + "|?| CREATED    | ID\n"
                 + f"{separator_len*'-'}\n"
                 + f"{models_str}\n\n"
-                + f"HINT: Use `$ph8.model set <model_id>` to set your model.\n"
+                + f"HINT: Use `$ph8.model set <model_name>` to set your model.\n"
                 + "```"
             )
 
@@ -120,24 +117,29 @@ class Preferences(commands.Cog):
     async def set_model(
         self,
         ctx: commands.Context,
-        model_id=commands.parameter(
+        model_name=commands.parameter(
             description="The ID of the model you'd like used for responses.",
             default=None,
         ),
     ):
         """Sets the model used for your responses."""
 
-        if not model_id:
+        if not model_name:
             await ctx.send_help(ctx.command)
             return
 
-        valid_model_ids = [model["id"] for model in get_models()]
-        if model_id not in valid_model_ids:
+        valid_model_names = [model["id"] for model in get_models()]
+        if model_name not in valid_model_names:
             await ctx.message.add_reaction("❌")
-            await ctx.reply(f"```⚠️ Invalid model ID.```")
+            await ctx.reply(f"```⚠️ Invalid model name.```")
+            return
+        
+        if model_name == self.get_user_pref(ctx.author.id, "model_name"):
+            await ctx.message.add_reaction("‼️")
+            await ctx.reply(f"```⚠️ Model already in use.```")
             return
 
-        self.set_user_pref(ctx.author.id, "model_id", model_id)
+        self.set_user_pref(ctx.author.id, "model_name", model_name)
         await ctx.message.add_reaction("✅")
 
 

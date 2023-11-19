@@ -24,7 +24,7 @@ async def ainvoke_conversation_chain(
     if preferences is None:
         raise ValueError("Preferences cog is not loaded")
 
-    model_name = preferences.get_user_pref(message.author.id, "model_id")
+    model_name = preferences.get_user_pref(message.author.id, "model_name")
 
     model = ChatOpenAI(model_name=model_name, temperature=0.8, max_tokens=498) # type: ignore
     moderation = OpenAIModerationChain(client=model.client)
