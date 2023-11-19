@@ -93,8 +93,8 @@ class Preferences(commands.Cog):
             longest_model_id = max([len(model["id"]) for model in models])
             models_str = "\n".join(
                 [
-                    "{} | {} | {}".format(
-                        "▶" if model["id"] == current_model else " ",
+                    "|{}| {} | {}".format(
+                        "*" if model["id"] == current_model else " ",
                         datetime.fromtimestamp(model["created"]).strftime("%Y-%m-%d"),
                         model["id"],
                     )
@@ -102,11 +102,13 @@ class Preferences(commands.Cog):
                 ]
             )
 
-            separator_len = longest_model_id + 17
+            separator_len = longest_model_id + 18
 
             await ctx.reply(
-                "```\n"
-                + "  | CREATED    | ID\n"
+                "```"
+                + "The following is a list of models you have access to;\n"
+                + "`*` indicates the model currently in use.\n\n"
+                + "|?| CREATED    | ID\n"
                 + f"{separator_len*'-'}\n"
                 + f"{models_str}\n\n"
                 + f"HINT: Use `$ph8.model set <model_id>` to set your model.\n"
