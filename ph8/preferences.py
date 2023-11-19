@@ -100,12 +100,12 @@ class Preferences(commands.Cog):
         valid_model_names = [model["id"] for model in self.models]
         if model_name not in valid_model_names:
             await ctx.message.add_reaction("❌")
-            await ctx.reply(f"```❌ "{model_name}" is not a valid model.```")
+            await ctx.reply(f'```❌ "{model_name}" is not a valid model.```')
             return
 
         if model_name == self.get_user_pref(ctx.author.id, "model_name"):
             await ctx.message.add_reaction("⚠️")
-            await ctx.reply(f"```⚠️ "{model_name}" is already the selected model.```")
+            await ctx.reply(f'```⚠️ "{model_name}" is already the selected model.```')
             return
 
         self.set_user_pref(ctx.author.id, "model_name", model_name)
