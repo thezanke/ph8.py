@@ -8,7 +8,7 @@ logger = getLogger(__name__)
 class DiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix="$ph8 ",
+            command_prefix=f"$ph8.",
             intents=Intents.all(),
             guild_subscriptions=True,
             owner_id=ph8.config.discord.owner_id,

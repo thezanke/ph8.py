@@ -7,6 +7,7 @@ from langchain.schema.output_parser import StrOutputParser
 import discord
 import discord.ext.commands as commands
 import ph8.config
+from ph8.preferences import Preferences
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +20,13 @@ async def ainvoke_conversation_chain(
     if bot.user is None:
         raise ValueError("Bot user is not set")
 
-    model = ph8.config.models.default
-    # if message.author.id == bot.owner_id:
-    #     logger.info("Using GPT-4 for owner")
-    #     model = ph8.config.models.gpt4
+    preferences: Preferences = bot.get_cog("Preferences") # type: ignore
+    if preferences is None:
+        raise ValueError("Preferences cog is not loaded")
 
-    model = ChatOpenAI(model=model, temperature=0.8, max_tokens=498)
+    model_name = preferences.get_user_pref(message.author.id, "model_id")
+
+    model = ChatOpenAI(model_name=model_name, temperature=0.8, max_tokens=498) # type: ignore
     moderation = OpenAIModerationChain(client=model.client)
 
     modded_content = await moderation.arun(message.content)

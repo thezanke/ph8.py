@@ -7,7 +7,7 @@ import ph8.chains
 logger = getLogger(__name__)
 
 
-class ConversationCog(commands.Cog, name="Conversation"):
+class Conversation(commands.Cog):
     __cache = LRUCache(capacity=500)
 
     def __init__(self, bot: commands.Bot):
@@ -85,4 +85,4 @@ class ConversationCog(commands.Cog, name="Conversation"):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(ConversationCog(bot))
+    await bot.add_cog(Conversation(bot))
