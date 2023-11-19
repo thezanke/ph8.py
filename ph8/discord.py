@@ -11,16 +11,6 @@ class CommandErrorHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        """The event triggered when an error is raised while invoking a command.
-        Parameters
-        ------------
-        ctx: commands.Context
-            The context used for command invocation.
-        error: commands.CommandError
-            The Exception raised.
-        """
-    
-
         # This prevents any commands with local handlers being handled here in on_command_error.
         if hasattr(ctx.command, 'on_error'):
             return
@@ -37,7 +27,7 @@ class CommandErrorHandler(commands.Cog):
 class DiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix=f"$ph8.",
+            command_prefix=f"$ph8 ",
             intents=Intents.all(),
             guild_subscriptions=True,
             owner_id=ph8.config.discord.owner_id,
