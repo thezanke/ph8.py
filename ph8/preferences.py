@@ -26,39 +26,27 @@ class OpenAIModelsResponse(TypedDict):
     data: list[OpenAIModel]
 
 
-def is_owner():
-    async def predicate(ctx):
-        return ctx.author.id == ctx.bot.owner_id
-
-    return commands.check(predicate)
-
-
-def get_reference_id(message: discord.Message):
-    return message.reference and message.reference.message_id
-
-
-__models: list[OpenAIModel] = []
-
-
-def get_models():
-    if len(__models) == 0:
-        response: OpenAIModelsResponse = openai.Model.list()  # type: ignore
-        response["data"].sort(key=lambda x: x["created"], reverse=True)
-
-        for model in response["data"]:
-            if not model["object"] == "model":
-                continue
-
-            if not model["id"].startswith("gpt-"):
-                continue
-
-            __models.append(model)
-
-    return __models
-
 
 class Preferences(commands.Cog):
     __user_prefs: dict[str, UserPrefDict] = {}
+    __cached_models: list[OpenAIModel] = []
+
+    @property
+    def models(self):
+        if len(self.__cached_models) == 0:
+            response: OpenAIModelsResponse = openai.Model.list()  # type: ignore
+            response["data"].sort(key=lambda x: x["created"], reverse=True)
+
+            for model in response["data"]:
+                if not model["object"] == "model":
+                    continue
+
+                if not model["id"].startswith("gpt-"):
+                    continue
+
+                self.__cached_models.append(model)
+
+        return self.__cached_models
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -79,10 +67,9 @@ class Preferences(commands.Cog):
         self.__ensure_user_prefs(user_key)
         self.__user_prefs[user_key][param] = value
 
-    async def model_status(self, ctx: commands.Context):
+    async def __get_model_info(self, ctx: commands.Context):
         current_model = self.get_user_pref(ctx.author.id, "model_name")
-        models = get_models()
-        longest_model_name = max([len(model["id"]) for model in models])
+        longest_model_name = max([len(model["id"]) for model in self.models])
         models_str = "\n".join(
             [
                 "|{}| {} | {}".format(
@@ -90,7 +77,7 @@ class Preferences(commands.Cog):
                     datetime.fromtimestamp(model["created"]).strftime("%Y-%m-%d"),
                     model["id"],
                 )
-                for model in models
+                for model in self.models
             ]
         )
 
@@ -107,20 +94,20 @@ class Preferences(commands.Cog):
             + "```"
         )
 
-    async def set_model(
+    async def __set_model(
         self,
         ctx: commands.Context,
         model_name: str,
     ):
         """Sets the model used for your responses."""
-        valid_model_names = [model["id"] for model in get_models()]
+        valid_model_names = [model["id"] for model in self.models]
         if model_name not in valid_model_names:
             await ctx.message.add_reaction("❌")
-            await ctx.reply(f"```⚠️ Invalid model name.```")
+            await ctx.reply(f"```❌ Invalid model name.```")
             return
 
         if model_name == self.get_user_pref(ctx.author.id, "model_name"):
-            await ctx.message.add_reaction("‼️")
+            await ctx.message.add_reaction("⚠️")
             await ctx.reply(f"```⚠️ This is already the selected model.```")
             return
 
@@ -137,9 +124,9 @@ class Preferences(commands.Cog):
         ),
     ):
         await (
-            self.model_status(ctx)
+            self.__get_model_info(ctx)
             if model_name is None
-            else self.set_model(ctx, model_name)
+            else self.__set_model(ctx, model_name)
         )
 
 
