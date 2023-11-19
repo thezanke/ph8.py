@@ -27,12 +27,12 @@ class OpenAIModelsResponse(TypedDict):
 
 
 class Preferences(commands.Cog):
-    __user_prefs: dict[str, UserPrefDict] = {}
-    __cached_models: list[OpenAIModel] = []
+    _user_prefs: dict[str, UserPrefDict] = {}
+    _cached_models: list[OpenAIModel] = []
 
     @property
     def models(self):
-        if len(self.__cached_models) == 0:
+        if len(self._cached_models) == 0:
             response: OpenAIModelsResponse = openai.Model.list()  # type: ignore
             response["data"].sort(key=lambda x: x["created"], reverse=True)
 
@@ -43,30 +43,30 @@ class Preferences(commands.Cog):
                 if not model["id"].startswith("gpt-"):
                     continue
 
-                self.__cached_models.append(model)
+                self._cached_models.append(model)
 
-        return self.__cached_models
+        return self._cached_models
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    def __ensure_user_prefs(self, user_key: str):
-        if user_key not in self.__user_prefs:
-            self.__user_prefs[user_key] = {
+    def _ensure_user_prefs(self, user_key: str):
+        if user_key not in self._user_prefs:
+            self._user_prefs[user_key] = {
                 "model_name": ph8.config.models.default,
             }
 
     def get_user_pref(self, user_id: int, param: str):
         user_key = str(user_id)
-        self.__ensure_user_prefs(user_key)
-        return self.__user_prefs[user_key][param]
+        self._ensure_user_prefs(user_key)
+        return self._user_prefs[user_key][param]
 
     def set_user_pref(self, user_id: int, param: str, value: Any):
         user_key = str(user_id)
-        self.__ensure_user_prefs(user_key)
-        self.__user_prefs[user_key][param] = value
+        self._ensure_user_prefs(user_key)
+        self._user_prefs[user_key][param] = value
 
-    async def __get_model_info(self, ctx: commands.Context):
+    async def _get_model_info(self, ctx: commands.Context):
         current_model = self.get_user_pref(ctx.author.id, "model_name")
         longest_model_name = max([len(model["id"]) for model in self.models])
         models_str = "\n".join(
@@ -93,7 +93,7 @@ class Preferences(commands.Cog):
             + "```"
         )
 
-    async def __set_model(
+    async def _set_model(
         self,
         ctx: commands.Context,
         model_name: str,
@@ -123,9 +123,9 @@ class Preferences(commands.Cog):
         ),
     ):
         await (
-            self.__get_model_info(ctx)
+            self._get_model_info(ctx)
             if model_name is None
-            else self.__set_model(ctx, model_name)
+            else self._set_model(ctx, model_name)
         )
 
 

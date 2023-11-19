@@ -13,7 +13,7 @@ class Conversation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    async def __handle_conversation_message(
+    async def _handle_conversation_message(
         self,
         message: discord.Message,
         reply_chain: list[discord.Message | discord.DeletedReferencedMessage],
@@ -26,17 +26,17 @@ class Conversation(commands.Cog):
 
         await message.reply(response)
 
-    def __add_message_to_cache(self, message: discord.Message):
+    def _add_message_to_cache(self, message: discord.Message):
         self.__cache.add(str(message.id), message)
 
-    def __get_message_from_cache(self, message_id: int):
+    def _get_message_from_cache(self, message_id: int):
         return self.__cache.get(str(message_id))
 
-    async def __get_referenced_message(self, reference: discord.MessageReference):
+    async def _get_referenced_message(self, reference: discord.MessageReference):
         if not reference.message_id:
             return None
 
-        message = self.__get_message_from_cache(reference.message_id)
+        message = self._get_message_from_cache(reference.message_id)
 
         if message is not None:
             return message
@@ -45,16 +45,16 @@ class Conversation(commands.Cog):
         message = await channel.fetch_message(reference.message_id)  # type: ignore
 
         if message is not None:
-            self.__add_message_to_cache(message)
+            self._add_message_to_cache(message)
 
         return message
 
-    async def __get_reply_chain(self, message: discord.Message):
+    async def _get_reply_chain(self, message: discord.Message):
         chain: list[discord.Message | discord.DeletedReferencedMessage] = []
         current_message = message
 
         while reference := current_message.reference:
-            current_message = await self.__get_referenced_message(reference)
+            current_message = await self._get_referenced_message(reference)
 
             if current_message is None:
                 break
@@ -74,11 +74,11 @@ class Conversation(commands.Cog):
             return
 
         if self.bot.user.mentioned_in(message):
-            self.__add_message_to_cache(message)
+            self._add_message_to_cache(message)
 
-            reply_chain = await self.__get_reply_chain(message)
+            reply_chain = await self._get_reply_chain(message)
 
-            await self.__handle_conversation_message(
+            await self._handle_conversation_message(
                 message=message,
                 reply_chain=reply_chain,
             )
