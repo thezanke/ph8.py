@@ -109,7 +109,7 @@ class Preferences(commands.Cog):
                 + "  | CREATED    | ID\n"
                 + f"{separator_len*'-'}\n"
                 + f"{models_str}\n\n"
-                + f"HINT: Use `$ph8 model set <model_id>` to set your model.\n"
+                + f"HINT: Use `$ph8.model set <model_id>` to set your model.\n"
                 + "```"
             )
 
