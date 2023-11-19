@@ -26,7 +26,7 @@ class OpenAIModelsResponse(TypedDict):
 
 
 class Preferences(commands.Cog):
-    _user_prefs: dict[str, UserPrefDict] = {}
+    _user_prefs: dict[int, UserPrefDict] = {}
     _cached_models: list[OpenAIModel] = []
 
     @property
@@ -49,24 +49,29 @@ class Preferences(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    def _ensure_user_prefs(self, user_key: str):
-        if user_key not in self._user_prefs:
-            self._user_prefs[user_key] = {
+    def _ensure_user_prefs(self, user_id: int):
+        if user_id not in self._user_prefs:
+            self._user_prefs[user_id] = {
                 "model_name": ph8.config.models.default,
             }
 
     def get_user_pref(self, user_id: int, param: str):
-        user_key = str(user_id)
-        self._ensure_user_prefs(user_key)
-        return self._user_prefs[user_key][param]
+        self._ensure_user_prefs(user_id)
+        return self._user_prefs[user_id][param]
 
     def set_user_pref(self, user_id: int, param: str, value: Any):
-        user_key = str(user_id)
-        self._ensure_user_prefs(user_key)
-        self._user_prefs[user_key][param] = value
+        self._ensure_user_prefs(user_id)
+        self._user_prefs[user_id][param] = value
 
-    async def _get_model_info(self, ctx: commands.Context):
+    async def _get_model_info(self, ctx: commands.Context[commands.Bot]):
         current_model = self.get_user_pref(ctx.author.id, "model_name")
+
+        if not ctx.bot.is_owner(ctx.author):
+            await ctx.reply(
+                f'```The model "{current_model}" will be used for your responses. You do not have permission to change this.```'
+            )
+            return
+
         longest_model_name = max([len(model["id"]) for model in self.models])
         models_str = "\n".join(
             [
@@ -97,6 +102,9 @@ class Preferences(commands.Cog):
         ctx: commands.Context,
         model_name: str,
     ):
+        if not ctx.bot.is_owner(ctx.author):
+            raise commands.NotOwner("You do not own this bot.")
+
         valid_model_names = [model["id"] for model in self.models]
         if model_name not in valid_model_names:
             await ctx.message.add_reaction("❌")
@@ -112,12 +120,11 @@ class Preferences(commands.Cog):
         await ctx.message.add_reaction("✅")
 
     @commands.command()
-    @commands.is_owner()
     async def model(
         self,
         ctx: commands.Context,
         model_name=commands.parameter(
-            description="The ID of the model you'd like used for responses.",
+            description="The name of the model you'd like used for responses.",
             default=None,
         ),
     ):
