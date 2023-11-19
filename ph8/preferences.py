@@ -79,61 +79,46 @@ class Preferences(commands.Cog):
         self.__ensure_user_prefs(user_key)
         self.__user_prefs[user_key][param] = value
 
-    @commands.group()
-    async def model(
-        self,
-        ctx: commands.Context,
-    ):
-        if ctx.invoked_subcommand is None:
-            current_model = self.get_user_pref(ctx.author.id, "model_name")
-            models = get_models()
-            longest_model_name = max([len(model["id"]) for model in models])
-            models_str = "\n".join(
-                [
-                    "|{}| {} | {}".format(
-                        "*" if model["id"] == current_model else " ",
-                        datetime.fromtimestamp(model["created"]).strftime("%Y-%m-%d"),
-                        model["id"],
-                    )
-                    for model in models
-                ]
-            )
+    async def model_status(self, ctx: commands.Context):
+        current_model = self.get_user_pref(ctx.author.id, "model_name")
+        models = get_models()
+        longest_model_name = max([len(model["id"]) for model in models])
+        models_str = "\n".join(
+            [
+                "|{}| {} | {}".format(
+                    "*" if model["id"] == current_model else " ",
+                    datetime.fromtimestamp(model["created"]).strftime("%Y-%m-%d"),
+                    model["id"],
+                )
+                for model in models
+            ]
+        )
 
-            separator_len = longest_model_name + 18
+        separator_len = longest_model_name + 18
 
-            await ctx.reply(
-                "```"
-                + "The following is a list of models you have access to;\n"
-                + "`*` indicates the model currently in use.\n\n"
-                + "|?| CREATED    | ID\n"
-                + f"{separator_len*'-'}\n"
-                + f"{models_str}\n\n"
-                + f"HINT: Use `$ph8.model set <model_name>` to set your model.\n"
-                + "```"
-            )
+        await ctx.reply(
+            "```"
+            + "The following is a list of models you have access to;\n"
+            + "`*` indicates the model currently in use.\n\n"
+            + "|?| CREATED    | ID\n"
+            + f"{separator_len*'-'}\n"
+            + f"{models_str}\n\n"
+            + f"HINT: Use `$ph8.model set <model_name>` to set your model.\n"
+            + "```"
+        )
 
-    @model.command(name="set")
-    @commands.is_owner()
     async def set_model(
         self,
         ctx: commands.Context,
-        model_name=commands.parameter(
-            description="The ID of the model you'd like used for responses.",
-            default=None,
-        ),
+        model_name: str,
     ):
         """Sets the model used for your responses."""
-
-        if not model_name:
-            await ctx.send_help(ctx.command)
-            return
-
         valid_model_names = [model["id"] for model in get_models()]
         if model_name not in valid_model_names:
             await ctx.message.add_reaction("❌")
             await ctx.reply(f"```⚠️ Invalid model name.```")
             return
-        
+
         if model_name == self.get_user_pref(ctx.author.id, "model_name"):
             await ctx.message.add_reaction("‼️")
             await ctx.reply(f"```⚠️ This is already the selected model.```")
@@ -141,6 +126,21 @@ class Preferences(commands.Cog):
 
         self.set_user_pref(ctx.author.id, "model_name", model_name)
         await ctx.message.add_reaction("✅")
+
+    @commands.command()
+    async def model(
+        self,
+        ctx: commands.Context,
+        model_name=commands.parameter(
+            description="The ID of the model you'd like used for responses.",
+            default=None,
+        ),
+    ):
+        await (
+            self.model_status(ctx)
+            if model_name is None
+            else self.set_model(ctx, model_name)
+        )
 
 
 async def setup(bot: commands.Bot):
