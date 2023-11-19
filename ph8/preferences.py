@@ -97,7 +97,6 @@ class Preferences(commands.Cog):
         ctx: commands.Context,
         model_name: str,
     ):
-        """Sets the model used for your responses."""
         valid_model_names = [model["id"] for model in self.models]
         if model_name not in valid_model_names:
             await ctx.message.add_reaction("❌")
@@ -121,6 +120,7 @@ class Preferences(commands.Cog):
             default=None,
         ),
     ):
+        """Allows users to view and set the model used for the bot's responses to their messages."""
         await (
             self._get_model_info(ctx)
             if model_name is None

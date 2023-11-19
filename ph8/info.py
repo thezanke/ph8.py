@@ -29,6 +29,7 @@ class Information(commands.Cog):
 
     @commands.command()
     async def uptime(self, ctx: commands.Context):
+        """Returns uptime and start time of the bot."""
         uptime = datetime.utcnow() - start_time
         uptime_str = self.strfdelta(uptime)
         await ctx.reply(
