@@ -114,6 +114,7 @@ class Preferences(commands.Cog):
             )
 
     @model.command(name="set")
+    @commands.is_owner()
     async def set_model(
         self,
         ctx: commands.Context,
