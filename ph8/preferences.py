@@ -136,7 +136,7 @@ class Preferences(commands.Cog):
         
         if model_name == self.get_user_pref(ctx.author.id, "model_name"):
             await ctx.message.add_reaction("‼️")
-            await ctx.reply(f"```⚠️ Model already in use.```")
+            await ctx.reply(f"```⚠️ This is already the selected model.```")
             return
 
         self.set_user_pref(ctx.author.id, "model_name", model_name)
