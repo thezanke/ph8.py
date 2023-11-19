@@ -46,7 +46,7 @@ async def ainvoke_conversation_chain(
         ("system", "CONTEXT.ASSISTANT:\n\n* NAME: {bot_name}\n* ID: {bot_id}"),
     ]
 
-    if len(reply_chain) > 0:
+    if len(reply_chain):
         messages.append(("system", "CONTEXT.MESSAGE_HISTORY:\n\n{message_history}"))
 
         history: list[str] = []

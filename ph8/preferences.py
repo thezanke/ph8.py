@@ -112,6 +112,7 @@ class Preferences(commands.Cog):
         await ctx.message.add_reaction("✅")
 
     @commands.command()
+    @commands.is_owner()
     async def model(
         self,
         ctx: commands.Context,
@@ -126,6 +127,12 @@ class Preferences(commands.Cog):
             if model_name is None
             else self._set_model(ctx, model_name)
         )
+
+    @model.error
+    async def model_error(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.CheckFailure):
+            await ctx.message.add_reaction("❌")
+            await ctx.reply(f"```❌ Permissions denied... who do you think you are?```")
 
 
 async def setup(bot: commands.Bot):
