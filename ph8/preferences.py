@@ -66,7 +66,7 @@ class Preferences(commands.Cog):
     async def _get_model_info(self, ctx: commands.Context[commands.Bot]):
         current_model = self.get_user_pref(ctx.author.id, "model_name")
 
-        if not ctx.bot.is_owner(ctx.author):
+        if not await ctx.bot.is_owner(ctx.author):
             await ctx.reply(
                 f'```The model "{current_model}" will be used for your responses. You do not have permission to change this.```'
             )
@@ -102,7 +102,7 @@ class Preferences(commands.Cog):
         ctx: commands.Context,
         model_name: str,
     ):
-        if not ctx.bot.is_owner(ctx.author):
+        if not await ctx.bot.is_owner(ctx.author):
             raise commands.NotOwner("You do not own this bot.")
 
         valid_model_names = [model["id"] for model in self.models]
