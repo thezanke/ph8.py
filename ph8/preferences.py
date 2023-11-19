@@ -85,7 +85,7 @@ class Preferences(commands.Cog):
             "```"
             + "The following is a list of models you have access to;\n"
             + "`*` indicates the model currently in use.\n\n"
-            + "|?| CREATED    | ID\n"
+            + "|?| CREATED    | MODEL NAME\n"
             + f"{separator_len*'-'}\n"
             + f"{models_str}\n\n"
             + f"HINT: Use `$ph8.model set <model_name>` to set your model.\n"
