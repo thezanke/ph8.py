@@ -13,19 +13,6 @@ class Conversation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    async def _handle_conversation_message(
-        self,
-        message: discord.Message,
-        reply_chain: list[discord.Message | discord.DeletedReferencedMessage],
-    ):
-        response = await ph8.chains.ainvoke_conversation_chain(
-            bot=self.bot,
-            message=message,
-            reply_chain=reply_chain,
-        )
-
-        await message.reply(response)
-
     def _add_message_to_cache(self, message: discord.Message):
         self.__cache.add(str(message.id), message)
 
@@ -65,6 +52,21 @@ class Conversation(commands.Cog):
 
         return chain
 
+    async def _before_response_handler(self, message: discord.Message):
+        self._add_message_to_cache(message)
+        await message.channel.typing()
+
+    async def _response_handler(self, message: discord.Message):
+        reply_chain = await self._get_reply_chain(message)
+
+        response = await ph8.chains.ainvoke_conversation_chain(
+            bot=self.bot,
+            message=message,
+            reply_chain=reply_chain,
+        )
+
+        await message.reply(response)
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if not self.bot.user:
@@ -74,14 +76,8 @@ class Conversation(commands.Cog):
             return
 
         if self.bot.user.mentioned_in(message):
-            self._add_message_to_cache(message)
-
-            reply_chain = await self._get_reply_chain(message)
-
-            await self._handle_conversation_message(
-                message=message,
-                reply_chain=reply_chain,
-            )
+            await self._before_response_handler(message)
+            await self._response_handler(message)
 
 
 async def setup(bot: commands.Bot):
