@@ -19,7 +19,7 @@ async def ainvoke_conversation_chain(
     if bot.user is None:
         raise ValueError("Bot user is not set")
 
-    preferences: Preferences = bot.get_cog("Preferences") # type: ignore
+    preferences: Preferences = bot.get_cog("Preferences")  # type: ignore
     if preferences is None:
         raise ValueError("Preferences cog is not loaded")
 

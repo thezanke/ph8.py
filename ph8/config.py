@@ -23,6 +23,7 @@ openai = SimpleNamespace(
 discord = SimpleNamespace(
     token=getenv("DISCORD_BOT_TOKEN"),
     owner_id=getenv("DISCORD_BOT_OWNER_ID", cast=int),
+    command_prefix=getenv("DISCORD_BOT_COMMAND_PREFIX", default="$ph8 "),
 )
 
 models = SimpleNamespace(
