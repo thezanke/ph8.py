@@ -52,10 +52,6 @@ class Conversation(commands.Cog):
 
         return chain
 
-    async def _before_response_handler(self, message: discord.Message):
-        self._add_message_to_cache(message)
-        await message.channel.typing()
-
     async def _response_handler(self, message: discord.Message):
         reply_chain = await self._get_reply_chain(message)
 
@@ -75,8 +71,12 @@ class Conversation(commands.Cog):
         if message.author.bot:
             return
 
-        if self.bot.user.mentioned_in(message):
-            await self._before_response_handler(message)
+        if not self.bot.user.mentioned_in(message):
+            return
+
+        self._add_message_to_cache(message)
+
+        async with message.channel.typing():
             await self._response_handler(message)
 
 
