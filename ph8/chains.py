@@ -25,7 +25,7 @@ async def ainvoke_conversation_chain(
 
     model_name = preferences.get_user_pref(message.author.id, "model_name")
 
-    model = ChatOpenAI(model=model_name, temperature=0.7, max_tokens=450)
+    model = ChatOpenAI(model=model_name, temperature=0.7, max_tokens=420)
     moderation = OpenAIModerationChain(client=model.client)
 
     modded_content = await moderation.arun(message.content)
