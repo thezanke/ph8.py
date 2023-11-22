@@ -8,4 +8,4 @@ class User(Base):
     __tablename__ = "users"
 
     id = mapped_column(String, primary_key=True, autoincrement=False)
-    create_at: Mapped[datetime] = mapped_column(insert_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(insert_default=func.now())

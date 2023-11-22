@@ -45,3 +45,7 @@ Context will be provided to you with each message, use it to formulate your resp
 Use <@user_id> to mention a user in your response when appropriate. (e.g. <@{author_id}>)""",
     ),
 )
+
+db = SimpleNamespace(
+    url=getenv("DATABASE_URL"),
+)

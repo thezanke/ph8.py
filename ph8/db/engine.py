@@ -1,5 +1,4 @@
 from sqlalchemy import create_engine
+import ph8.config
 
-DATABASE_URI = "postgresql+psycopg2://postgres:postgres@localhost:5555/postgres"
-
-engine = create_engine(DATABASE_URI)
+engine = create_engine(ph8.config.db.url)

@@ -20,6 +20,10 @@ poethepoet = "^0.24.1"
 script = "ph8.main:init"
 envfile = ".env"
 
+[tool.poe.tasks."db:migrate"]
+script = "ph8.db.scripts:migrate"
+envfile = ".env"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
