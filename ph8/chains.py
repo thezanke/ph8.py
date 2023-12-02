@@ -1,7 +1,9 @@
 from langchain.chains import OpenAIModerationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.output_parser import StrOutputParser
+from langchain.agents import Tool
+from langchain.tools.render import format_tool_to_openai_function
 from ph8.preferences import Preferences
 import discord
 import discord.ext.commands as commands
@@ -9,7 +11,6 @@ import logging
 import ph8.config
 
 logger = logging.getLogger(__name__)
-
 
 async def ainvoke_conversation_chain(
     bot: commands.Bot,
@@ -25,8 +26,8 @@ async def ainvoke_conversation_chain(
 
     model_name = preferences.get_user_pref(message.author.id, "model_name")
 
-    model = ChatOpenAI(model=model_name, temperature=0.7, max_tokens=420)
-    moderation = OpenAIModerationChain(client=model.client)
+    llm = ChatOpenAI(model=model_name, temperature=0.7, max_tokens=420)
+    moderation = OpenAIModerationChain(client=llm.client)
 
     modded_content = await moderation.arun(message.content)
 
@@ -41,7 +42,7 @@ async def ainvoke_conversation_chain(
         "message_content": message.content,
     }
 
-    messages: list[str | tuple[str, str]] = [
+    messages = [
         ("system", ph8.config.conversation.system_message_intro),
         ("system", "CONTEXT.ASSISTANT:\n\n* NAME: {bot_name}\n* ID: {bot_id}"),
     ]
@@ -66,9 +67,10 @@ async def ainvoke_conversation_chain(
         )
     )
     messages.append(("human", "{message_content}"))
+    messages.append(MessagesPlaceholder(variable_name="agent_scratchpad"))
 
     prompt = ChatPromptTemplate.from_messages(messages)
-    chain = prompt | model | StrOutputParser() | moderation
+    chain = prompt | llm | StrOutputParser() | moderation
     response = await chain.ainvoke(input_args)
 
     return response["output"]
