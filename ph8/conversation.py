@@ -8,16 +8,16 @@ logger = getLogger(__name__)
 
 
 class Conversation(commands.Cog):
-    __cache = LRUCache(capacity=500)
+    _cache = LRUCache(capacity=500)
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     def _add_message_to_cache(self, message: discord.Message):
-        self.__cache.add(str(message.id), message)
+        self._cache.add(str(message.id), message)
 
     def _get_message_from_cache(self, message_id: int):
-        return self.__cache.get(str(message_id))
+        return self._cache.get(str(message_id))
 
     async def _get_referenced_message(self, reference: discord.MessageReference):
         if not reference.message_id:
