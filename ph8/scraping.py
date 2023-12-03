@@ -1,4 +1,3 @@
-from html2text import HTML2Text
 import logging
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -42,14 +41,20 @@ def get_text_content_from_url(url):
     driver = webdriver.Chrome(options=create_chrome_options())
     driver.get(url)
 
+    body_text = driver.find_element(By.TAG_NAME, "body").text
+    links = [
+        (link.text, link.get_dom_attribute("href"))
+        for link in driver.find_elements(By.TAG_NAME, "a")
+    ]
+
     results = f"""<web-browser-results url="{url}">\n"""
-    results += f"""<text-content>\n{driver.find_element(By.TAG_NAME, "body").text}</text-content>\n"""
+    results += f"""<text-content>\n{body_text}</text-content>\n"""
     results += (
         "<links>\n"
         + "\n".join(
             [
-                f"""  <link href="{l.get_attribute('href')}">{l.text}</link>"""
-                for l in driver.find_elements(By.TAG_NAME, "a")
+                f"""  <link href="{href}">{link_text}</link>"""
+                for link_text, href in links
             ]
         )
         + "</links>\n"
