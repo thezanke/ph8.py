@@ -42,7 +42,7 @@ def get_text_content_from_url(url):
     driver.get(url)
     element = driver.find_element(By.TAG_NAME, "body")
     text_content = element.text
-    driver.close()
+    driver.quit()
 
     return text_content
 
