@@ -6,7 +6,6 @@ import ph8.chains
 
 logger = getLogger(__name__)
 
-
 class Conversation(commands.Cog):
     _cache = LRUCache(capacity=500)
 

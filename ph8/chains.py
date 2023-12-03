@@ -1,16 +1,51 @@
+from langchain.agents import Tool
 from langchain.chains import OpenAIModerationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema.output_parser import StrOutputParser
-from langchain.agents import Tool
+from langchain.agents.format_scratchpad import format_to_openai_function_messages
+from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
 from langchain.tools.render import format_tool_to_openai_function
 from ph8.preferences import Preferences
+from langchain.agents import AgentExecutor
 import discord
 import discord.ext.commands as commands
 import logging
 import ph8.config
 
+from ph8.scraping import get_text_content_from_url
+
 logger = logging.getLogger(__name__)
+
+
+# class WebBrowserInput(BaseModel):
+#     url: str = Field(description="URL of the web page to get")
+
+
+# class WebBrowserTool(BaseTool):
+#     name = "get_text_content_from_url"
+#     description = """
+#         Useful when you want to fetch the text content of a web page.
+#         You should enter a complete, web-accessible URL."""
+#     args_schema: Type[BaseModel] = WebBrowserInput
+
+#     def _run(self, url: str):
+#         content = get_text_content_from_url(url)
+#         return content
+
+#     def _arun(self, url: str):
+#         raise NotImplementedError("get_text_content_from_url does not support async")
+
+
+lc_tools = [
+    Tool.from_function(
+        func=get_text_content_from_url,
+        name="WebBrowser",
+        description="Useful for when you want to load the text content from a web URL",
+    )
+]
+
+oai_functions = [format_tool_to_openai_function(t) for t in lc_tools]
+
 
 async def ainvoke_conversation_chain(
     bot: commands.Bot,
@@ -33,13 +68,14 @@ async def ainvoke_conversation_chain(
 
     if modded_content != message.content:
         return modded_content
+    llm_with_tools = llm.bind(functions=oai_functions)
 
     input_args = {
         "bot_id": bot.user.id,
         "bot_name": bot.user.display_name,
         "author_id": message.author.id,
         "author_name": message.author.display_name,
-        "message_content": message.content,
+        "user_message": message.content,
     }
 
     messages = [
@@ -66,11 +102,26 @@ async def ainvoke_conversation_chain(
             "CONTEXT.MESSAGE_AUTHOR:\n\n* Name:{author_name}\n* ID: {author_id}",
         )
     )
-    messages.append(("human", "{message_content}"))
+    messages.append(("user", "{user_message}"))
     messages.append(MessagesPlaceholder(variable_name="agent_scratchpad"))
 
     prompt = ChatPromptTemplate.from_messages(messages)
-    chain = prompt | llm | StrOutputParser() | moderation
-    response = await chain.ainvoke(input_args)
+    agent = (
+        {
+            "user_message": lambda x: x["user_message"],
+            "bot_id": lambda x: x["bot_id"],
+            "bot_name": lambda x: x["bot_name"],
+            "author_id": lambda x: x["author_id"],
+            "author_name": lambda x: x["author_name"],
+            "agent_scratchpad": lambda x: format_to_openai_function_messages(
+                x["intermediate_steps"]
+            ),
+        }
+        | prompt
+        | llm_with_tools
+        | OpenAIFunctionsAgentOutputParser()
+    )
+    agent_executor = AgentExecutor(agent=agent, tools=lc_tools, verbose=True)
+    response = await agent_executor.ainvoke(input_args)
 
     return response["output"]
