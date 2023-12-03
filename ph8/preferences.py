@@ -93,7 +93,7 @@ class Preferences(commands.Cog):
             + "|?| CREATED    | MODEL NAME\n"
             + f"{separator_len*'-'}\n"
             + f"{models_str}\n\n"
-            + f"HINT: Use `$ph8.model set <model_name>` to set your model.\n"
+            + f"HINT: Use `{ph8.config.discord.command_prefix}set <model_name>` to set your model.\n"
             + "```"
         )
 
