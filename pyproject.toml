@@ -12,6 +12,7 @@ langchain = "^0.0.334"
 openai = "^0.28.0"
 selenium = "^4.15.2"
 asyncio = "^3.4.3"
+html2text = "^2020.1.16"
 
 [tool.poetry.group.dev.dependencies]
 poethepoet = "^0.24.1"

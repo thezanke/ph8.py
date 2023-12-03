@@ -68,6 +68,7 @@ async def ainvoke_conversation_chain(
         "bot_name": lambda x: x["bot_name"],
         "author_id": lambda x: x["author_id"],
         "author_name": lambda x: x["author_name"],
+        "message_history": lambda x: x.get("message_history", None),
         "agent_scratchpad": lambda x: format_to_openai_function_messages(
             x["intermediate_steps"]
         ),
@@ -85,7 +86,6 @@ async def ainvoke_conversation_chain(
 
             history.append(f"{m.author.display_name} (ID: {m.author.id}): {m.content}")
         input_args["message_history"] = "\n".join(history)
-        agent_arg_map["message_history"] = lambda x: x["message_history"]
 
     messages.append(
         (
@@ -93,8 +93,8 @@ async def ainvoke_conversation_chain(
             "CONTEXT.MESSAGE_AUTHOR:\n\n* Name:{author_name}\n* ID: {author_id}",
         )
     )
-    messages.append(("user", "{user_message}"))
     messages.append(MessagesPlaceholder(variable_name="agent_scratchpad"))
+    messages.append(("user", "{user_message}"))
 
     prompt = ChatPromptTemplate.from_messages(messages)
     agent = agent_arg_map | prompt | llm_with_tools | OpenAIFunctionsAgentOutputParser()
