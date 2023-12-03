@@ -6,35 +6,14 @@ from langchain.agents.format_scratchpad import format_to_openai_function_message
 from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
 from langchain.tools.render import format_tool_to_openai_function
 from ph8.preferences import Preferences
+from ph8.scraping import get_text_content_from_url
 from langchain.agents import AgentExecutor
 import discord
 import discord.ext.commands as commands
 import logging
 import ph8.config
 
-from ph8.scraping import get_text_content_from_url
-
 logger = logging.getLogger(__name__)
-
-
-# class WebBrowserInput(BaseModel):
-#     url: str = Field(description="URL of the web page to get")
-
-
-# class WebBrowserTool(BaseTool):
-#     name = "get_text_content_from_url"
-#     description = """
-#         Useful when you want to fetch the text content of a web page.
-#         You should enter a complete, web-accessible URL."""
-#     args_schema: Type[BaseModel] = WebBrowserInput
-
-#     def _run(self, url: str):
-#         content = get_text_content_from_url(url)
-#         return content
-
-#     def _arun(self, url: str):
-#         raise NotImplementedError("get_text_content_from_url does not support async")
-
 
 lc_tools = [
     Tool.from_function(
