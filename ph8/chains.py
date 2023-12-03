@@ -83,6 +83,17 @@ async def ainvoke_conversation_chain(
         ("system", "CONTEXT.ASSISTANT:\n\n* NAME: {bot_name}\n* ID: {bot_id}"),
     ]
 
+    agent_arg_map = {
+        "user_message": lambda x: x["user_message"],
+        "bot_id": lambda x: x["bot_id"],
+        "bot_name": lambda x: x["bot_name"],
+        "author_id": lambda x: x["author_id"],
+        "author_name": lambda x: x["author_name"],
+        "agent_scratchpad": lambda x: format_to_openai_function_messages(
+            x["intermediate_steps"]
+        ),
+    }
+
     if len(reply_chain):
         messages.append(("system", "CONTEXT.MESSAGE_HISTORY:\n\n{message_history}"))
 
@@ -95,6 +106,7 @@ async def ainvoke_conversation_chain(
 
             history.append(f"{m.author.display_name} (ID: {m.author.id}): {m.content}")
         input_args["message_history"] = "\n".join(history)
+        agent_arg_map["message_history"] = lambda x: x["message_history"]
 
     messages.append(
         (
@@ -106,22 +118,8 @@ async def ainvoke_conversation_chain(
     messages.append(MessagesPlaceholder(variable_name="agent_scratchpad"))
 
     prompt = ChatPromptTemplate.from_messages(messages)
-    agent = (
-        {
-            "user_message": lambda x: x["user_message"],
-            "bot_id": lambda x: x["bot_id"],
-            "bot_name": lambda x: x["bot_name"],
-            "author_id": lambda x: x["author_id"],
-            "author_name": lambda x: x["author_name"],
-            "agent_scratchpad": lambda x: format_to_openai_function_messages(
-                x["intermediate_steps"]
-            ),
-        }
-        | prompt
-        | llm_with_tools
-        | OpenAIFunctionsAgentOutputParser()
-    )
-    agent_executor = AgentExecutor(agent=agent, tools=lc_tools, verbose=True)
+    agent = agent_arg_map | prompt | llm_with_tools | OpenAIFunctionsAgentOutputParser()
+    agent_executor = AgentExecutor(agent=agent, tools=lc_tools, verbose=True)  # type: ignore
     response = await agent_executor.ainvoke(input_args)
 
     return response["output"]
