@@ -47,6 +47,7 @@ async def ainvoke_conversation_chain(
 
     if modded_content != message.content:
         return modded_content
+
     llm_with_tools = llm.bind(functions=oai_functions)
 
     input_args = {
