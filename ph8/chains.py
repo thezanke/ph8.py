@@ -31,12 +31,10 @@ async def ainvoke_conversation_chain(
     message: discord.Message,
     reply_chain: list[discord.Message | discord.DeletedReferencedMessage],
 ):
-    if bot.user is None:
-        raise ValueError("Bot user is not set")
+    assert bot.user is not None, "Bot user is not set"
 
     preferences: Preferences = bot.get_cog("Preferences")  # type: ignore
-    if preferences is None:
-        raise ValueError("Preferences cog is not loaded")
+    assert preferences is not None, "Preferences cog is not loaded"
 
     model_name = preferences.get_user_pref(message.author.id, "model_name")
 
@@ -86,6 +84,7 @@ async def ainvoke_conversation_chain(
                 continue
 
             history.append(f"{m.author.display_name} (ID: {m.author.id}): {m.content}")
+
         input_args["message_history"] = "\n".join(history)
 
     messages.append(

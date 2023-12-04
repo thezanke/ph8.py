@@ -54,7 +54,7 @@ ARG APP_USER
 ARG APP_PORT
 
 RUN apt-get -yqq update && \
-  apt-get -yqq install wget gnupg2 unzip && \
+  apt-get -yqq install wget gnupg2 unzip entr && \
   wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
   sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list' && \
   apt-get -yqq update && apt-get install -y google-chrome-stable

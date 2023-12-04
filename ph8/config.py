@@ -6,8 +6,7 @@ def getenv(name, default=None, cast=None):
     value = os.getenv(name)
 
     if value is None:
-        if default is None:
-            raise ValueError(f"Missing required environment variable {name}")
+        assert default is not None, "Missing required environment variable {name}"
         value = default
 
     if cast is not None:

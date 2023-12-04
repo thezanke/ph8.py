@@ -12,6 +12,7 @@ services:
     restart: always
     stdin_open: true
     tty: true
+    command: ["sh", "-c", "find . -name '*.py' | entr -rs 'echo \"Initializing / Restarting due to changes...\" && python -m ph8.main'"]
   # chromadb:
   #   image: chromadb
   #   ports:

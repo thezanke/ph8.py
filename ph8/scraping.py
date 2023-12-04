@@ -38,32 +38,31 @@ def create_chrome_options() -> Options:
 
 
 def get_text_content_from_url(url):
-    driver = webdriver.Chrome(options=create_chrome_options())
-    driver.get(url)
+    try:
+        driver = webdriver.Chrome(options=create_chrome_options())
+        driver.get(url)
 
-    body_text = driver.find_element(By.TAG_NAME, "body").text
-    links = [
-        (link.text, link.get_dom_attribute("href"))
-        for link in driver.find_elements(By.TAG_NAME, "a")
-    ]
+        body_text = driver.find_element(By.TAG_NAME, "body").text
+        links = [
+            (link.get_dom_attribute("href"), link.text)
+            for link in driver.find_elements(By.TAG_NAME, "a")
+        ]
 
-    results = f"""<web-browser-results url="{url}">\n"""
-    results += f"""<text-content>\n{body_text}</text-content>\n"""
-    results += (
-        "<links>\n"
-        + "\n".join(
-            [
-                f"""  <link href="{href}">{link_text}</link>"""
-                for link_text, href in links
-            ]
+        results = f"""<web-browser-results url="{url}">\n"""
+        results += f"""<text-content>\n{body_text}</text-content>\n"""
+        results += (
+            "<links>\n"
+            + "\n".join([f'  <link href="%s">%s</link>' % link for link in links])
+            + "</links>\n"
         )
-        + "</links>\n"
-    )
-    results += "</web-browser-results>\n"
+        results += "</web-browser-results>\n"
 
-    driver.quit()
+        driver.quit()
 
-    return results
+        return results
+    except Exception as e:
+        logger.exception(e)
+        return f"<web-browser-results url='{url}' error='{e}'/>"
 
 
 if __name__ == "__main__":
